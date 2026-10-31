@@ -13,3 +13,4 @@ venv/
 network/.state/
 *.db-journal
 threat.db
+network/.state/
