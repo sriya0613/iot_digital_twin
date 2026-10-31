@@ -1,0 +1,15 @@
+*.raw
+*.baseline.raw
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+logs/*.jsonl
+*.db
+models_v3_hybrid/*.pkl
+*.pcap
+*.pcapng
+venv/
+.env
+network/.state/
+*.db-journal
+threat.db

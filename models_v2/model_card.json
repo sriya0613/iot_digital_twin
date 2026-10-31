@@ -1,0 +1,241 @@
+{
+  "trained_at_utc": "2026-10-03T10:36:55Z",
+  "dataset": "data/dataset_v2.jsonl",
+  "schema_version": "2.0.0",
+  "n_features": 45,
+  "n_records": 261,
+  "label_mode": "manifest",
+  "manifest_labels": {
+    "benign": 37,
+    "healing": 126,
+    "malware": 9,
+    "unlabeled": 89
+  },
+  "attack_windows": 9,
+  "normal_windows": 234,
+  "attack_windows_by_manifest_label": {
+    "benign": 0,
+    "healing": 0,
+    "malware": 9,
+    "unlabeled": 0
+  },
+  "burst_rule": null,
+  "models": {
+    "xgboost": "XGBClassifier(n_estimators=150, max_depth=2, learning_rate=0.1, colsample_bytree=0.3, scale_pos_weight=neg/pos)",
+    "incremental": "SGDClassifier(loss=log_loss) trained with partial_fit"
+  },
+  "fusion": {
+    "w_xgb": 0.6,
+    "w_inc": 0.4
+  },
+  "thresholds": {
+    "suspicious": 0.15,
+    "malicious": 0.35
+  },
+  "scan_augmentation": "volume-scaled copies of real attack windows, training only",
+  "n_train": 174,
+  "n_train_attack": 6,
+  "n_test": 69,
+  "n_test_attack": 3,
+  "test_split": "last 30% of runs per label",
+  "test_normal_max_threat_probability": 0.022174440022163837,
+  "test_attack_min_threat_probability": 0.9852691899802821,
+  "cv_folds": 5,
+  "cv_attack_min_p_with_augmentation": 0.983832904808243,
+  "cv_attack_min_p_without_augmentation": 0.5170100396842844,
+  "cv_normal_max_p_with_augmentation": 0.02385975627069859,
+  "live_sample": null,
+  "unlabeled_windows": {
+    "unlabeled_used_as_normal": 71,
+    "unlabeled_next_to_an_attack_left_out": 18
+  },
+  "saved_model": {
+    "n_real_windows": 243,
+    "n_real_attack": 9,
+    "n_rows_after_augmentation": 459
+  },
+  "shap_backend": "shap.TreeExplainer",
+  "shap_base_value": -0.03570984676480293,
+  "shap_share_by_monitor": {
+    "network": 1.0,
+    "syscall": 0.0,
+    "energy": 0.0
+  },
+  "constant_features_by_monitor": {
+    "network": [
+      "n_dhcp"
+    ],
+    "syscall": [
+      "sys_frac_file",
+      "sys_frac_proc",
+      "sys_n_exec"
+    ],
+    "energy": []
+  },
+  "global_feature_impact": [
+    {
+      "feature": "n_unique_dst_ports",
+      "monitor": "network",
+      "mean_abs_shap": 1.654
+    },
+    {
+      "feature": "distinct_l4_services",
+      "monitor": "network",
+      "mean_abs_shap": 1.4121
+    },
+    {
+      "feature": "frac_rst",
+      "monitor": "network",
+      "mean_abs_shap": 0.7867
+    },
+    {
+      "feature": "n_unique_src_ports",
+      "monitor": "network",
+      "mean_abs_shap": 0.5001
+    },
+    {
+      "feature": "frac_syn",
+      "monitor": "network",
+      "mean_abs_shap": 0.4333
+    },
+    {
+      "feature": "n_arp_reply",
+      "monitor": "network",
+      "mean_abs_shap": 0.2061
+    },
+    {
+      "feature": "n_broadcast",
+      "monitor": "network",
+      "mean_abs_shap": 0.176
+    },
+    {
+      "feature": "mean_iat",
+      "monitor": "network",
+      "mean_abs_shap": 0.1378
+    },
+    {
+      "feature": "frac_arp",
+      "monitor": "network",
+      "mean_abs_shap": 0.0838
+    },
+    {
+      "feature": "mean_ttl",
+      "monitor": "network",
+      "mean_abs_shap": 0.0788
+    },
+    {
+      "feature": "frac_ack",
+      "monitor": "network",
+      "mean_abs_shap": 0.0499
+    },
+    {
+      "feature": "frac_icmp",
+      "monitor": "network",
+      "mean_abs_shap": 0.0478
+    },
+    {
+      "feature": "std_iat",
+      "monitor": "network",
+      "mean_abs_shap": 0.045
+    },
+    {
+      "feature": "n_http",
+      "monitor": "network",
+      "mean_abs_shap": 0.0094
+    }
+  ],
+  "versions": {
+    "xgboost": "3.2.0",
+    "sklearn": "1.7.2"
+  },
+  "results": {
+    "fused XGBoost + incremental": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 66,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "XGBoost alone": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 66,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "incremental model alone": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 66,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "one-class SVM, normal-only (unsupervised baseline)": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 66,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "fused, NETWORK features only": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 66,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "fused, SYSCALL + ENERGY features only": {
+      "tp": 1,
+      "fp": 1,
+      "fn": 2,
+      "tn": 65,
+      "accuracy": 0.9565217391304348,
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "f1": 0.4,
+      "false_positive_rate": 0.015151515151515152
+    },
+    "fused, stratified 5-fold over all 243 labelled windows": {
+      "tp": 9,
+      "fp": 0,
+      "fn": 0,
+      "tn": 234,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "fused WITHOUT scan augmentation, same 5-fold": {
+      "tp": 9,
+      "fp": 1,
+      "fn": 0,
+      "tn": 233,
+      "accuracy": 0.9958847736625515,
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1": 0.9473684210526316,
+      "false_positive_rate": 0.004273504273504274
+    }
+  }
+}

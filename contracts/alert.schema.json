@@ -1,0 +1,329 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://capstone.local/contracts/alert.schema.json",
+  "title": "Detector alert record",
+  "description": "One JSON object per line, written by live_detector.py --alerts-out. The seam between Person C (detection) and Person D (policy, response, threat DB, dashboard). Three record types: 'window' = the verdict for one 5-second window (every scored window, benign ones too); 'heal' = the outcome of a restore the detector itself ran. 'health' = the twin's liveness, written by network/watchdog.py (node_dead, heal_started, heal_ok, heal_failed, node_recovered, escalate, controller_down, controller_up, heal_in_progress).",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "alert_version",
+    "type",
+    "emitted_at_epoch"
+  ],
+  "properties": {
+    "alert_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "window",
+        "heal",
+        "health"
+      ]
+    },
+    "emitted_at_epoch": {
+      "type": "number",
+      "description": "Host clock (UTC epoch seconds) when the record was written."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "window"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "alert_id",
+          "window_start_epoch",
+          "window_end_epoch",
+          "threat_label",
+          "threat_probability",
+          "risk_score",
+          "explanation",
+          "detector_action"
+        ],
+        "properties": {
+          "alert_id": {
+            "type": "string",
+            "description": "Unique per device and window: '<device_ip>-<window_start_epoch>'."
+          },
+          "window_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Counter from the stream. Restarts from 0 when the stream restarts (after a restore) - do not use it as a key."
+          },
+          "window_start_epoch": {
+            "type": "number"
+          },
+          "window_end_epoch": {
+            "type": "number"
+          },
+          "device_ip": {
+            "type": "string"
+          },
+          "firmware_id": {
+            "type": "string"
+          },
+          "interface": {
+            "type": "string"
+          },
+          "threat_label": {
+            "type": "string",
+            "enum": [
+              "benign",
+              "suspicious",
+              "malicious"
+            ]
+          },
+          "threat_probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Fused probability: 0.6 x XGBoost + 0.4 x incremental model."
+          },
+          "risk_score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "round(100 x threat_probability)."
+          },
+          "p_xgboost": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "p_incremental": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "explanation": {
+            "type": "array",
+            "description": "SHAP feature impacts on the XGBoost model, largest first (up to 5).",
+            "items": {
+              "type": "object",
+              "required": [
+                "feature",
+                "value",
+                "impact",
+                "direction"
+              ],
+              "properties": {
+                "feature": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number",
+                  "description": "The feature's normalised value in this window, 0-1."
+                },
+                "impact": {
+                  "type": "number",
+                  "description": "SHAP value in log-odds; positive raises risk."
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "raises risk",
+                    "lowers risk"
+                  ]
+                },
+                "monitor": {
+                  "type": "string",
+                  "enum": [
+                    "network",
+                    "syscall",
+                    "energy"
+                  ]
+                }
+              }
+            }
+          },
+          "fingerprint_schema": {
+            "type": "string",
+            "enum": [
+              "1.0.0",
+              "2.0.0"
+            ]
+          },
+          "detector_action": {
+            "type": "string",
+            "enum": [
+              "none",
+              "alert_only",
+              "restore_started",
+              "would_restore",
+              "suppressed_max_heals"
+            ],
+            "description": "What the detector itself did about this window. alert_only = --alerts-only mode, the response is yours. restore_started = the detector is running restore.sh now; a 'heal' record follows."
+          },
+          "attack_class": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Attack type from the multi-class head: scan|bruteforce|dos|beacon (hybrid model only)."
+          },
+          "attack_class_prob": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "anomaly_score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Autoencoder reconstruction-error anomaly, 0-1 (hybrid model only)."
+          },
+          "risk_components": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Blended-risk parts: confidence, anomaly, severity, weights (hybrid model only)."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "heal"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "ok",
+          "restore_seconds"
+        ],
+        "properties": {
+          "window_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "window_end_epoch": {
+            "type": "number",
+            "description": "End of the attack window that triggered the restore."
+          },
+          "device_ip": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "restore.sh exited 0: device answered ping again."
+          },
+          "exit_code": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "restore_seconds": {
+            "type": "number"
+          },
+          "ignoring_windows_until_epoch": {
+            "type": "number",
+            "description": "The detector discards windows that start before this time (restore + grace)."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "health"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "event",
+          "device_ip",
+          "state",
+          "checks"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "node_dead",
+              "heal_started",
+              "heal_ok",
+              "heal_failed",
+              "node_recovered",
+              "escalate",
+              "controller_down",
+              "controller_up",
+              "heal_in_progress"
+            ]
+          },
+          "device_ip": {
+            "type": "string"
+          },
+          "interface": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "starting",
+              "up",
+              "degraded",
+              "dead",
+              "healing",
+              "settling",
+              "escalated"
+            ]
+          },
+          "checks": {
+            "type": "object",
+            "description": "emulator, ping, http, on_bridge, controller, healing - true/false",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "failed_checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "after_checks": {
+            "type": "integer"
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "heal_seconds": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

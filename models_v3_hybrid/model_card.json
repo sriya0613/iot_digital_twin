@@ -1,0 +1,58 @@
+{
+  "schema_version": "2.0.0",
+  "n_features": 45,
+  "n_windows": 783,
+  "n_attack": 285,
+  "n_normal": 498,
+  "class_counts": {
+    "beacon": 72,
+    "benign": 498,
+    "bruteforce": 134,
+    "dos": 34,
+    "scan": 45
+  },
+  "models": {
+    "binary": "XGBoost + SGD (fused 0.6/0.4)",
+    "anomaly": "MLP autoencoder (benign-only)",
+    "multiclass": "XGBoost multi:softprob",
+    "incremental": "SGD (River not installed)"
+  },
+  "risk_score": "blended: 0.5*confidence + 0.2*anomaly + 0.3*severity*confidence (0-100)",
+  "held_out_binary": {
+    "tp": 73,
+    "fp": 8,
+    "fn": 15,
+    "tn": 142,
+    "precision": 0.9012,
+    "recall": 0.8295,
+    "f1": 0.8639,
+    "false_positive_rate": 0.0533
+  },
+  "held_out_per_class": {
+    "beacon": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "bruteforce": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "dos": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "scan": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "shap_share_by_monitor": {
+    "network": 0.6506999731063843,
+    "syscall": 0.0723000019788742,
+    "energy": 0.2768999934196472
+  }
+}

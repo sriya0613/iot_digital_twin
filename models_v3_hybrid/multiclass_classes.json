@@ -1,0 +1,20 @@
+{
+  "classes": [
+    "beacon",
+    "bruteforce",
+    "dos",
+    "scan"
+  ],
+  "severity": {
+    "benign": 0.0,
+    "scan": 0.4,
+    "beacon": 0.5,
+    "bruteforce": 0.7,
+    "dos": 0.9
+  },
+  "risk_weights": {
+    "confidence": 0.5,
+    "anomaly": 0.2,
+    "severity": 0.3
+  }
+}

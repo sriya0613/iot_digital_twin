@@ -1,0 +1,6 @@
+numpy
+scikit-learn
+joblib
+xgboost
+shap         # optional: falls back to XGBoost built-in TreeSHAP if missing
+matplotlib   # optional: only for the report figures

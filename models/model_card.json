@@ -1,0 +1,234 @@
+{
+  "trained_at_utc": "2026-10-03T07:46:53Z",
+  "dataset": "data/dataset.jsonl",
+  "schema_version": "1.0.0",
+  "n_features": 28,
+  "n_records": 108,
+  "label_mode": "effective",
+  "manifest_labels": {
+    "benign": 18,
+    "malware": 48,
+    "unlabeled": 42
+  },
+  "attack_windows": 10,
+  "normal_windows": 98,
+  "attack_windows_by_manifest_label": {
+    "benign": 0,
+    "malware": 5,
+    "unlabeled": 5
+  },
+  "burst_rule": {
+    "benign_max_pkt_count_norm": 0.001806,
+    "factor": 5.0,
+    "threshold_norm": 0.00903
+  },
+  "models": {
+    "xgboost": "XGBClassifier(n_estimators=150, max_depth=2, learning_rate=0.1, colsample_bytree=0.3, scale_pos_weight=neg/pos)",
+    "incremental": "SGDClassifier(loss=log_loss) trained with partial_fit"
+  },
+  "fusion": {
+    "w_xgb": 0.6,
+    "w_inc": 0.4
+  },
+  "thresholds": {
+    "suspicious": 0.15,
+    "malicious": 0.35
+  },
+  "scan_augmentation": "volume-scaled copies of real attack windows, training only",
+  "n_train": 66,
+  "n_train_attack": 5,
+  "n_test": 42,
+  "n_test_attack": 5,
+  "test_split": "unlabeled windows",
+  "test_normal_max_threat_probability": 0.014634620849943207,
+  "test_attack_min_threat_probability": 0.9901837986922439,
+  "cv_folds": 5,
+  "cv_attack_min_p_with_augmentation": 0.9297220631707266,
+  "cv_attack_min_p_without_augmentation": 0.37334477406944,
+  "cv_normal_max_p_with_augmentation": 0.014024672106700374,
+  "live_sample": {
+    "file": "data/live_fingerprints.jsonl",
+    "n_windows": 62,
+    "n_attack": 1,
+    "attack_window_ids": [
+      7
+    ],
+    "attack_p_without_augmentation": [
+      0.2878
+    ],
+    "attack_p_with_augmentation": [
+      0.9616
+    ],
+    "normal_max_p_with_augmentation": 0.008255922053400777
+  },
+  "unlabeled_windows_scored_by_saved_model": null,
+  "saved_model": {
+    "n_real_windows": 170,
+    "n_real_attack": 11,
+    "n_rows_after_augmentation": 407
+  },
+  "shap_backend": "shap.TreeExplainer",
+  "shap_base_value": -2.0069232050445862e-05,
+  "shap_share_by_monitor": {
+    "network": 1.0,
+    "syscall": 0.0,
+    "energy": 0.0
+  },
+  "constant_features_by_monitor": {
+    "network": [
+      "frac_other",
+      "n_dns_mdns",
+      "n_dhcp",
+      "n_multicast"
+    ],
+    "syscall": [],
+    "energy": []
+  },
+  "global_feature_impact": [
+    {
+      "feature": "pkt_count",
+      "monitor": "network",
+      "mean_abs_shap": 1.3061
+    },
+    {
+      "feature": "pkts_per_sec",
+      "monitor": "network",
+      "mean_abs_shap": 1.3007
+    },
+    {
+      "feature": "frac_tcp",
+      "monitor": "network",
+      "mean_abs_shap": 0.7081
+    },
+    {
+      "feature": "n_unique_dst_ports",
+      "monitor": "network",
+      "mean_abs_shap": 0.5444
+    },
+    {
+      "feature": "n_unique_src_ports",
+      "monitor": "network",
+      "mean_abs_shap": 0.3662
+    },
+    {
+      "feature": "frac_rst",
+      "monitor": "network",
+      "mean_abs_shap": 0.3441
+    },
+    {
+      "feature": "frac_syn",
+      "monitor": "network",
+      "mean_abs_shap": 0.322
+    },
+    {
+      "feature": "n_https",
+      "monitor": "network",
+      "mean_abs_shap": 0.2083
+    }
+  ],
+  "versions": {
+    "xgboost": "3.4.1",
+    "sklearn": "1.9.1"
+  },
+  "results": {
+    "fused XGBoost + incremental": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "tn": 37,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "XGBoost alone": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "tn": 37,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "incremental model alone": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "tn": 37,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "fused, trained on RAW manifest labels": {
+      "tp": 5,
+      "fp": 36,
+      "fn": 0,
+      "tn": 1,
+      "accuracy": 0.14285714285714285,
+      "precision": 0.12195121951219512,
+      "recall": 1.0,
+      "f1": 0.21739130434782605,
+      "false_positive_rate": 0.972972972972973
+    },
+    "one-class SVM, normal-only (unsupervised baseline)": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "tn": 37,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "fused, stratified 5-fold over all 108 labelled windows": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "tn": 98,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "fused WITHOUT scan augmentation, same 5-fold": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "tn": 98,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    },
+    "LIVE sample, trained on dataset only, WITHOUT augmentation": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "tn": 61,
+      "accuracy": 0.9838709677419355,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "false_positive_rate": 0.0
+    },
+    "LIVE sample, trained on dataset only, with augmentation": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 61,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "false_positive_rate": 0.0
+    }
+  }
+}

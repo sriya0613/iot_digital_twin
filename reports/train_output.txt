@@ -1,0 +1,28 @@
+records: 108   manifest labels: {'benign': 18, 'malware': 48, 'unlabeled': 42}
+effective: 10 attack / 98 normal   (attack windows by manifest label: {'benign': 0, 'malware': 5, 'unlabeled': 5})
+train: 66 (5 attack)   test: 42 (5 attack, 37 normal)
+fusion: 0.6 x XGBoost + 0.4 x incremental   thresholds: suspicious >= 0.15, malicious >= 0.35
+held-out threat probability: highest normal 0.012, lowest attack 0.990
+
+model                                                 TP  FP  FN  TN    acc  prec   rec   FPR
+fused XGBoost + incremental (shipped)                  5   0   0  37  1.000 1.000 1.000 0.000
+XGBoost alone                                          5   0   0  37  1.000 1.000 1.000 0.000
+incremental model alone                                5   0   0  37  1.000 1.000 1.000 0.000
+fused, trained on RAW manifest labels                  5  36   0   1  0.143 0.122 1.000 0.973
+one-class SVM, normal-only (unsupervised baseline)     5   0   0  37  1.000 1.000 1.000 0.000
+fused, stratified 5-fold over all 108 windows         10   0   0  98  1.000 1.000 1.000 0.000
+
+SHAP feature impact on XGBoost (mean |SHAP|, shap.TreeExplainer):
+  byte_count             1.308
+  pkt_count              0.897
+  n_unique_dst_ports     0.389
+  frac_tcp               0.293
+  n_unique_src_ports     0.287
+  pkts_per_sec           0.277
+  frac_syn               0.210
+  n_https                0.190
+  bytes_per_sec          0.141
+  frac_rst               0.109
+
+saved models/{xgboost.json, incremental.joblib, config.json, model_card.json}, reports/window_scores.csv
+saved reports/{score_timeline,confusion_matrix,shap_feature_impact}.png
