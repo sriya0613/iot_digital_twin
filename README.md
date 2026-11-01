@@ -17,11 +17,8 @@ An end-to-end self-healing IoT security system that emulates IoT firmware as a d
 
 The system operates as a 4-stage closed-loop pipeline:
 
-```
-Digital Twin → Behavior Fingerprinting → Hybrid ML Detection → Autonomous Response
-     ↑                                                              |
-     └──────────── Verified Self-Healing + Online Learning ←────────┘
-```
+<img width="1794" height="868" alt="image" src="https://github.com/user-attachments/assets/44128e4d-6015-4a6e-be5d-bd0e46e3c79a" />
+
 
 ### Module 1 — Digital Twin & Network Infrastructure
 - **FirmAE/QEMU** emulation of D-Link DIR-868L router firmware
