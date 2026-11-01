@@ -15,7 +15,6 @@ An end-to-end self-healing IoT security system that emulates IoT firmware as a d
 
 ## Architecture
 
-The system operates as a 4-stage closed-loop pipeline:
 
 <img width="1794" height="868" alt="image" src="https://github.com/user-attachments/assets/44128e4d-6015-4a6e-be5d-bd0e46e3c79a" />
 
