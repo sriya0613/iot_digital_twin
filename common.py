@@ -31,6 +31,25 @@ ENERGY_FEATURES = [
 FEATURE_ORDER_V2 = FEATURE_ORDER_V1 + SYSCALL_FEATURES + ENERGY_FEATURES
 
 SCHEMAS = {"1.0.0": FEATURE_ORDER_V1, "2.0.0": FEATURE_ORDER_V2}
+
+# Features with zero variance in the labelled dataset (dataset_v3.jsonl).
+# These carry no discriminative information in the present evaluation.
+ZERO_VARIANCE_FEATURES = [
+    "frac_other",      # no non-IP/TCP/UDP/ICMP/ARP packets
+    "n_dns_mdns",      # firmware does not use DNS/mDNS
+    "n_dhcp",          # static IPs; no DHCP
+    "sys_rare_count",  # only 4 syscalls hooked; none classified "rare"
+    "sys_frac_net",    # constant 1.0 (all hooked calls are network)
+    "sys_frac_file",   # constant 0.0 (no file syscalls hooked)
+    "sys_frac_proc",   # constant 0.0 (no process syscalls hooked)
+    "sys_n_exec",      # constant 0.0 (exec not hooked)
+]
+
+def effective_features(feature_order=None):
+    """Return features with non-zero variance."""
+    fo = feature_order or FEATURE_ORDER_V2
+    return [f for f in fo if f not in ZERO_VARIANCE_FEATURES]
+
 NETWORK_FEATURES = FEATURE_ORDER_V1
 FEATURE_ORDER = FEATURE_ORDER_V1     # kept for older imports
 SCHEMA_VERSION = "1.0.0"             # kept for older imports
