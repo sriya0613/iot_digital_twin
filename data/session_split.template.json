@@ -1,0 +1,8 @@
+{
+  "_instructions": "PROPOSAL, not yet registered. Copy to data/session_split.json, edit if the team decides differently, and commit it BEFORE collecting S01. Never edit it after sessions are collected. Test and val sessions are spread across the collection period so they are not all collected last (time confound). S16-S18 are spares: if a planned session fails validation, the next spare takes its role in the same part. Legacy Oct 16/19 data may only be in train; Oct 3 (different capture point) is reported separately and is not listed.",
+  "registered": null,
+  "train": ["L20261016", "L20261019", "S01", "S02", "S03", "S05", "S06", "S08", "S10", "S11", "S13", "S15"],
+  "val": ["S04", "S09", "S14"],
+  "test": ["S07", "S12", "S16"],
+  "spares": ["S17", "S18"]
+}

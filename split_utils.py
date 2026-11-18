@@ -133,6 +133,46 @@ def split_by_runid_train_val_test(run_ids, cls, val_frac=0.15, test_frac=0.15, s
             np.array(sorted(test_idx)))
 
 
+# ----------------------------------------------------------------- session-held-out split
+SPLIT_PARTS = ("train", "val", "test")
+
+
+def load_session_split(path):
+    """Read and check a pre-registered split file:
+        {"train": ["S01", ..., "L20261016"], "val": [...], "test": [...], "registered": "<date>"}
+    Checks: all three parts present, no session in two parts, legacy sessions (L*) only in train,
+    at least one session in each part. Returns {session_id: part}."""
+    with open(path) as f:
+        spec = json.load(f)
+    where = {}
+    for part in SPLIT_PARTS:
+        ids = spec.get(part)
+        if not isinstance(ids, list) or not ids:
+            raise ValueError("%s: '%s' must be a non-empty list" % (path, part))
+        for sid in ids:
+            if sid in where:
+                raise ValueError("%s: session %s is in both %s and %s" % (path, sid, where[sid], part))
+            if str(sid).startswith("L") and part != "train":
+                raise ValueError("%s: legacy session %s may only be used for training" % (path, sid))
+            where[sid] = part
+    return where
+
+
+def split_by_session(session_ids, split):
+    """Indices for train / val / test from per-window session ids and a split from load_session_split().
+    Windows whose session is not in the split (None, or not registered) are returned separately and
+    never used. Returns (train_idx, val_idx, test_idx, unassigned_idx)."""
+    parts = {p: [] for p in SPLIT_PARTS + ("unassigned",)}
+    for i, sid in enumerate(session_ids):
+        parts[split.get(sid, "unassigned")].append(i)
+    return tuple(np.array(parts[p], dtype=int) for p in SPLIT_PARTS + ("unassigned",))
+
+
+def session_ids_of(meta):
+    """Per-window session ids from load_supervised()'s meta list (None if not merged)."""
+    return np.array([m.get("session_id") for m in meta], dtype=object)
+
+
 def describe_split(cls, run_ids, indices, name="split"):
     """Print a summary of a split partition."""
     c_sub = cls[indices]
