@@ -1,0 +1,824 @@
+{
+  "dataset": "data/dataset_v3.jsonl",
+  "total_windows": 783,
+  "supervised_windows": 443,
+  "label_counts": {
+    "unlabeled": 207,
+    "malware": 285,
+    "benign": 158,
+    "healing": 133
+  },
+  "supervised_class_counts": {
+    "scan": 45,
+    "bruteforce": 134,
+    "dos": 34,
+    "beacon": 72,
+    "benign": 158
+  },
+  "run_id_summary": {
+    "None": {
+      "count": 207,
+      "labels": [
+        "unlabeled"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T171122-malware": {
+      "count": 6,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T171333-malware": {
+      "count": 6,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T171451-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T171618-malware": {
+      "count": 6,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T171704-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T171751-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T171838-malware": {
+      "count": 6,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T171939-malware": {
+      "count": 6,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "scan"
+      ]
+    },
+    "20261016T172029-malware": {
+      "count": 47,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "bruteforce"
+      ]
+    },
+    "20261016T172448-malware": {
+      "count": 29,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "bruteforce"
+      ]
+    },
+    "20261016T172807-malware": {
+      "count": 29,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "bruteforce"
+      ]
+    },
+    "20261016T173131-malware": {
+      "count": 29,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "bruteforce"
+      ]
+    },
+    "20261016T173432-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "dos"
+      ]
+    },
+    "20261016T173603-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "dos"
+      ]
+    },
+    "20261016T173707-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "dos"
+      ]
+    },
+    "20261016T173750-malware": {
+      "count": 4,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "dos"
+      ]
+    },
+    "20261016T173834-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "dos"
+      ]
+    },
+    "20261016T173922-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "dos"
+      ]
+    },
+    "20261016T174042-malware": {
+      "count": 5,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "dos"
+      ]
+    },
+    "20261016T174137-malware": {
+      "count": 47,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "beacon"
+      ]
+    },
+    "20261016T174615-malware": {
+      "count": 12,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "beacon"
+      ]
+    },
+    "20261016T174746-malware": {
+      "count": 13,
+      "labels": [
+        "malware"
+      ],
+      "attack_classes": [
+        "beacon"
+      ]
+    },
+    "20261016T174914-benign": {
+      "count": 25,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T175115-benign": {
+      "count": 24,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T175316-benign": {
+      "count": 12,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T175427-benign": {
+      "count": 13,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T175536-benign": {
+      "count": 12,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T175649-healing": {
+      "count": 45,
+      "labels": [
+        "healing"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T180056-healing": {
+      "count": 44,
+      "labels": [
+        "healing"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261016T180456-healing": {
+      "count": 44,
+      "labels": [
+        "healing"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261019T175039-benign": {
+      "count": 8,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261019T175118-benign": {
+      "count": 1,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261019T175126-benign": {
+      "count": 37,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    },
+    "20261019T175446-benign": {
+      "count": 26,
+      "labels": [
+        "benign"
+      ],
+      "attack_classes": [
+        ""
+      ]
+    }
+  },
+  "total_features": 45,
+  "zero_variance_features": [
+    {
+      "feature": "frac_other",
+      "constant_value": 0.0
+    },
+    {
+      "feature": "n_dns_mdns",
+      "constant_value": 0.0
+    },
+    {
+      "feature": "n_dhcp",
+      "constant_value": 0.0
+    },
+    {
+      "feature": "sys_rare_count",
+      "constant_value": 0.0
+    },
+    {
+      "feature": "sys_frac_net",
+      "constant_value": 1.0
+    },
+    {
+      "feature": "sys_frac_file",
+      "constant_value": 0.0
+    },
+    {
+      "feature": "sys_frac_proc",
+      "constant_value": 0.0
+    },
+    {
+      "feature": "sys_n_exec",
+      "constant_value": 0.0
+    }
+  ],
+  "effective_features": 37,
+  "feature_stats": [
+    {
+      "feature": "pkt_count",
+      "monitor": "network",
+      "mean": 0.06457257787810385,
+      "std": 0.16272263159306852,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.026478654832573438,
+      "zero_variance": false
+    },
+    {
+      "feature": "byte_count",
+      "monitor": "network",
+      "mean": 0.08157311963882617,
+      "std": 0.16125626436904342,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.026003582798258713,
+      "zero_variance": false
+    },
+    {
+      "feature": "mean_pkt_size",
+      "monitor": "network",
+      "mean": 0.14504217155756208,
+      "std": 0.05721794918428521,
+      "min": 0.0,
+      "max": 0.201906,
+      "variance": 0.003273893708855441,
+      "zero_variance": false
+    },
+    {
+      "feature": "std_pkt_size",
+      "monitor": "network",
+      "mean": 0.5804944717832958,
+      "std": 0.39084873981262946,
+      "min": 0.0,
+      "max": 0.906389,
+      "variance": 0.15276273741312077,
+      "zero_variance": false
+    },
+    {
+      "feature": "mean_iat",
+      "monitor": "network",
+      "mean": 0.05398140180586908,
+      "std": 0.11137415478552777,
+      "min": 0.0,
+      "max": 0.752946,
+      "variance": 0.012404202354190692,
+      "zero_variance": false
+    },
+    {
+      "feature": "std_iat",
+      "monitor": "network",
+      "mean": 0.0878403137697517,
+      "std": 0.14725559110102845,
+      "min": 0.0,
+      "max": 0.838948,
+      "variance": 0.021684209110513268,
+      "zero_variance": false
+    },
+    {
+      "feature": "pkts_per_sec",
+      "monitor": "network",
+      "mean": 0.06457257787810385,
+      "std": 0.16272263159306852,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.026478654832573438,
+      "zero_variance": false
+    },
+    {
+      "feature": "bytes_per_sec",
+      "monitor": "network",
+      "mean": 0.08157311963882617,
+      "std": 0.16125626436904342,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.026003582798258713,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_tcp",
+      "monitor": "network",
+      "mean": 0.7624074311512415,
+      "std": 0.3865244571093366,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.14940115594366715,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_udp",
+      "monitor": "network",
+      "mean": 0.028022148984198646,
+      "std": 0.07853428271924377,
+      "min": 0.0,
+      "max": 0.5,
+      "variance": 0.006167633562226073,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_icmp",
+      "monitor": "network",
+      "mean": 0.11769038374717834,
+      "std": 0.25716280833425914,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.06613270999036287,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_arp",
+      "monitor": "network",
+      "mean": 0.04221864559819413,
+      "std": 0.12305909230838569,
+      "min": 0.0,
+      "max": 0.75,
+      "variance": 0.015143540199763827,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_other",
+      "monitor": "network",
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "n_unique_src_ports",
+      "monitor": "network",
+      "mean": 0.05904548306997743,
+      "std": 0.16987689852734547,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.028858160653270116,
+      "zero_variance": false
+    },
+    {
+      "feature": "n_unique_dst_ports",
+      "monitor": "network",
+      "mean": 0.05015798194130926,
+      "std": 0.14840094344389476,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.022022840015038337,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_syn",
+      "monitor": "network",
+      "mean": 0.18851614672686232,
+      "std": 0.2337832735470472,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.054654618990373695,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_ack",
+      "monitor": "network",
+      "mean": 0.6756178826185102,
+      "std": 0.41455681564906977,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.17185735340109723,
+      "zero_variance": false
+    },
+    {
+      "feature": "frac_rst",
+      "monitor": "network",
+      "mean": 0.052025896162528215,
+      "std": 0.20968232393675845,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.04396667697151876,
+      "zero_variance": false
+    },
+    {
+      "feature": "mean_ttl",
+      "monitor": "network",
+      "mean": 0.23789394130925515,
+      "std": 0.054445971579438826,
+      "min": 0.0,
+      "max": 0.25098,
+      "variance": 0.002964363821229066,
+      "zero_variance": false
+    },
+    {
+      "feature": "n_dns_mdns",
+      "monitor": "network",
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "n_dhcp",
+      "monitor": "network",
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "n_arp_req",
+      "monitor": "network",
+      "mean": 0.08758465011286681,
+      "std": 0.17444989692284144,
+      "min": 0.0,
+      "max": 0.8,
+      "variance": 0.030432766536389766,
+      "zero_variance": false
+    },
+    {
+      "feature": "n_arp_reply",
+      "monitor": "network",
+      "mean": 0.08487584650112866,
+      "std": 0.17319640185423624,
+      "min": 0.0,
+      "max": 0.8,
+      "variance": 0.02999699361525424,
+      "zero_variance": false
+    },
+    {
+      "feature": "n_http",
+      "monitor": "network",
+      "mean": 0.048055160270880366,
+      "std": 0.14623429712546207,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.0213844696557779,
+      "zero_variance": false
+    },
+    {
+      "feature": "n_https",
+      "monitor": "network",
+      "mean": 0.005417607223476299,
+      "std": 0.03031057234828287,
+      "min": 0.0,
+      "max": 0.2,
+      "variance": 0.0009187307960805033,
+      "zero_variance": false
+    },
+    {
+      "feature": "n_broadcast",
+      "monitor": "network",
+      "mean": 0.007223476297968398,
+      "std": 0.037316439403651154,
+      "min": 0.0,
+      "max": 0.2,
+      "variance": 0.0013925166497663706,
+      "zero_variance": false
+    },
+    {
+      "feature": "n_multicast",
+      "monitor": "network",
+      "mean": 0.0029126930022573367,
+      "std": 0.0368273495906186,
+      "min": 0.0,
+      "max": 0.629032,
+      "variance": 0.0013562536778696517,
+      "zero_variance": false
+    },
+    {
+      "feature": "distinct_l4_services",
+      "monitor": "network",
+      "mean": 0.05015798194130926,
+      "std": 0.14840094344389476,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.022022840015038337,
+      "zero_variance": false
+    },
+    {
+      "feature": "sys_count",
+      "monitor": "syscall",
+      "mean": 0.049999729119638826,
+      "std": 0.029576741585967552,
+      "min": 0.007006,
+      "max": 0.151691,
+      "variance": 0.0008747836428431021,
+      "zero_variance": false
+    },
+    {
+      "feature": "sys_per_sec",
+      "monitor": "syscall",
+      "mean": 0.049999729119638826,
+      "std": 0.029576741585967552,
+      "min": 0.007006,
+      "max": 0.151691,
+      "variance": 0.0008747836428431021,
+      "zero_variance": false
+    },
+    {
+      "feature": "sys_unique",
+      "monitor": "syscall",
+      "mean": 0.5557562076749435,
+      "std": 0.14420969863118682,
+      "min": 0.2,
+      "max": 0.8,
+      "variance": 0.02079643717929766,
+      "zero_variance": false
+    },
+    {
+      "feature": "sys_rare_count",
+      "monitor": "syscall",
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "sys_entropy",
+      "monitor": "syscall",
+      "mean": 0.38299291196388263,
+      "std": 0.25246997355566847,
+      "min": 0.0,
+      "max": 1.0,
+      "variance": 0.06374108754719979,
+      "zero_variance": false
+    },
+    {
+      "feature": "sys_frac_net",
+      "monitor": "syscall",
+      "mean": 1.0,
+      "std": 0.0,
+      "min": 1.0,
+      "max": 1.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "sys_frac_file",
+      "monitor": "syscall",
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "sys_frac_proc",
+      "monitor": "syscall",
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "sys_n_exec",
+      "monitor": "syscall",
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "variance": 0.0,
+      "zero_variance": true
+    },
+    {
+      "feature": "sys_ngram_unique",
+      "monitor": "syscall",
+      "mean": 0.40685787358916475,
+      "std": 0.15615656434963884,
+      "min": 0.047619,
+      "max": 0.857143,
+      "variance": 0.024384872589482697,
+      "zero_variance": false
+    },
+    {
+      "feature": "sys_n_pids",
+      "monitor": "syscall",
+      "mean": 0.10666402708803613,
+      "std": 0.10685522987995974,
+      "min": 0.013043,
+      "max": 0.617391,
+      "variance": 0.011418040152699004,
+      "zero_variance": false
+    },
+    {
+      "feature": "energy_mean_power",
+      "monitor": "energy",
+      "mean": 0.10948186230248307,
+      "std": 0.0913993088748018,
+      "min": 0.018438,
+      "max": 0.460253,
+      "variance": 0.008353833662791424,
+      "zero_variance": false
+    },
+    {
+      "feature": "energy_peak_power",
+      "monitor": "energy",
+      "mean": 0.13209660270880363,
+      "std": 0.07317537769035827,
+      "min": 0.017963,
+      "max": 0.579005,
+      "variance": 0.00535463590012658,
+      "zero_variance": false
+    },
+    {
+      "feature": "energy_j",
+      "monitor": "energy",
+      "mean": 0.10622204514672687,
+      "std": 0.08822592134774995,
+      "min": 0.008914,
+      "max": 0.492648,
+      "variance": 0.007783813197659362,
+      "zero_variance": false
+    },
+    {
+      "feature": "energy_cpu_util",
+      "monitor": "energy",
+      "mean": 0.32171621670428896,
+      "std": 0.30263995568719243,
+      "min": 0.031359,
+      "max": 1.0,
+      "variance": 0.09159094277834579,
+      "zero_variance": false
+    },
+    {
+      "feature": "energy_io_ops",
+      "monitor": "energy",
+      "mean": 0.08458357110609481,
+      "std": 0.07119455799466226,
+      "min": 0.013158,
+      "max": 0.438616,
+      "variance": 0.005068665088055325,
+      "zero_variance": false
+    },
+    {
+      "feature": "energy_per_syscall",
+      "monitor": "energy",
+      "mean": 0.03263403160270881,
+      "std": 0.0630825446795312,
+      "min": 0.004803,
+      "max": 0.379782,
+      "variance": 0.003979407443245052,
+      "zero_variance": false
+    }
+  ],
+  "status": "PRELIMINARY"
+}

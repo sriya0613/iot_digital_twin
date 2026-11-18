@@ -1,0 +1,13 @@
+{
+  "n_splits": 100,
+  "started": "2026-11-18T17:22:07",
+  "experiments": [
+    "exp3",
+    "exp4",
+    "exp5",
+    "exp8",
+    "exp9",
+    "exp10",
+    "exp6"
+  ]
+}

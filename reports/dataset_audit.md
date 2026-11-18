@@ -9,7 +9,7 @@
 ## 1. Label Distribution
 
 | Label | Count | % of total |
-|-------|-------|----------|
+|-------|-------|-----------|
 | benign | 158 | 20.2% |
 | healing | 133 | 17.0% |
 | malware | 285 | 36.4% |
@@ -85,6 +85,56 @@
 | `sys_frac_file` | syscall | 0.0 |
 | `sys_frac_proc` | syscall | 0.0 |
 | `sys_n_exec` | syscall | 0.0 |
+
+### Feature statistics (supervised windows only)
+
+| Feature | Monitor | Mean | Std | Min | Max | Zero-var |
+|---------|---------|------|-----|-----|-----|----------|
+| `pkt_count` | network | 0.0646 | 0.1627 | 0.0000 | 1.0000 |  |
+| `byte_count` | network | 0.0816 | 0.1613 | 0.0000 | 1.0000 |  |
+| `mean_pkt_size` | network | 0.1450 | 0.0572 | 0.0000 | 0.2019 |  |
+| `std_pkt_size` | network | 0.5805 | 0.3908 | 0.0000 | 0.9064 |  |
+| `mean_iat` | network | 0.0540 | 0.1114 | 0.0000 | 0.7529 |  |
+| `std_iat` | network | 0.0878 | 0.1473 | 0.0000 | 0.8389 |  |
+| `pkts_per_sec` | network | 0.0646 | 0.1627 | 0.0000 | 1.0000 |  |
+| `bytes_per_sec` | network | 0.0816 | 0.1613 | 0.0000 | 1.0000 |  |
+| `frac_tcp` | network | 0.7624 | 0.3865 | 0.0000 | 1.0000 |  |
+| `frac_udp` | network | 0.0280 | 0.0785 | 0.0000 | 0.5000 |  |
+| `frac_icmp` | network | 0.1177 | 0.2572 | 0.0000 | 1.0000 |  |
+| `frac_arp` | network | 0.0422 | 0.1231 | 0.0000 | 0.7500 |  |
+| `frac_other` | network | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ✗ |
+| `n_unique_src_ports` | network | 0.0590 | 0.1699 | 0.0000 | 1.0000 |  |
+| `n_unique_dst_ports` | network | 0.0502 | 0.1484 | 0.0000 | 1.0000 |  |
+| `frac_syn` | network | 0.1885 | 0.2338 | 0.0000 | 1.0000 |  |
+| `frac_ack` | network | 0.6756 | 0.4146 | 0.0000 | 1.0000 |  |
+| `frac_rst` | network | 0.0520 | 0.2097 | 0.0000 | 1.0000 |  |
+| `mean_ttl` | network | 0.2379 | 0.0544 | 0.0000 | 0.2510 |  |
+| `n_dns_mdns` | network | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ✗ |
+| `n_dhcp` | network | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ✗ |
+| `n_arp_req` | network | 0.0876 | 0.1744 | 0.0000 | 0.8000 |  |
+| `n_arp_reply` | network | 0.0849 | 0.1732 | 0.0000 | 0.8000 |  |
+| `n_http` | network | 0.0481 | 0.1462 | 0.0000 | 1.0000 |  |
+| `n_https` | network | 0.0054 | 0.0303 | 0.0000 | 0.2000 |  |
+| `n_broadcast` | network | 0.0072 | 0.0373 | 0.0000 | 0.2000 |  |
+| `n_multicast` | network | 0.0029 | 0.0368 | 0.0000 | 0.6290 |  |
+| `distinct_l4_services` | network | 0.0502 | 0.1484 | 0.0000 | 1.0000 |  |
+| `sys_count` | syscall | 0.0500 | 0.0296 | 0.0070 | 0.1517 |  |
+| `sys_per_sec` | syscall | 0.0500 | 0.0296 | 0.0070 | 0.1517 |  |
+| `sys_unique` | syscall | 0.5558 | 0.1442 | 0.2000 | 0.8000 |  |
+| `sys_rare_count` | syscall | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ✗ |
+| `sys_entropy` | syscall | 0.3830 | 0.2525 | 0.0000 | 1.0000 |  |
+| `sys_frac_net` | syscall | 1.0000 | 0.0000 | 1.0000 | 1.0000 | ✗ |
+| `sys_frac_file` | syscall | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ✗ |
+| `sys_frac_proc` | syscall | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ✗ |
+| `sys_n_exec` | syscall | 0.0000 | 0.0000 | 0.0000 | 0.0000 | ✗ |
+| `sys_ngram_unique` | syscall | 0.4069 | 0.1562 | 0.0476 | 0.8571 |  |
+| `sys_n_pids` | syscall | 0.1067 | 0.1069 | 0.0130 | 0.6174 |  |
+| `energy_mean_power` | energy | 0.1095 | 0.0914 | 0.0184 | 0.4603 |  |
+| `energy_peak_power` | energy | 0.1321 | 0.0732 | 0.0180 | 0.5790 |  |
+| `energy_j` | energy | 0.1062 | 0.0882 | 0.0089 | 0.4926 |  |
+| `energy_cpu_util` | energy | 0.3217 | 0.3026 | 0.0314 | 1.0000 |  |
+| `energy_io_ops` | energy | 0.0846 | 0.0712 | 0.0132 | 0.4386 |  |
+| `energy_per_syscall` | energy | 0.0326 | 0.0631 | 0.0048 | 0.3798 |  |
 
 ## 5. Exclusion Rules
 
