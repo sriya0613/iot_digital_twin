@@ -59,6 +59,9 @@ CREATE TABLE IF NOT EXISTS indicators (
     impact REAL, monitor TEXT, UNIQUE (alert_id, feature));
 CREATE TABLE IF NOT EXISTS health (
     id INTEGER PRIMARY KEY AUTOINCREMENT, device_ip TEXT, emitted_at_epoch REAL, raw_json TEXT);
+CREATE TABLE IF NOT EXISTS heal_checks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, heal_id INTEGER REFERENCES heals(id), factor TEXT,
+    ok INTEGER, detail TEXT, seconds REAL);
 """
 
 # columns added after the first version of a table: (table, column, type)
@@ -123,6 +126,13 @@ class ThreatDatabase:
                                 "pending" if h["ok"] else "failed", trigger_risk))
         self.con.commit()
         return cur.lastrowid if cur.rowcount == 1 else None
+
+    def record_heal_checks(self, heal_id, result):
+        """Independent heal checks from verify_heal.HealVerifier.verify(); ok NULL = not checked."""
+        for c in result["checks"]:
+            self.con.execute("INSERT INTO heal_checks (heal_id, factor, ok, detail, seconds) VALUES (?,?,?,?,?)",
+                             (heal_id, c["factor"], None if c["ok"] is None else int(bool(c["ok"])), c["detail"], c["seconds"]))
+        self.con.commit()
 
     def set_verify(self, heal_id, status):
         self.con.execute("UPDATE heals SET verify_status = ? WHERE id = ?", (status, heal_id))

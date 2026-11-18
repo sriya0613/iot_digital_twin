@@ -1,0 +1,11 @@
+{
+  "n_splits": 100,
+  "started": "2026-11-18T18:40:12",
+  "experiments": [
+    "risk",
+    "latency",
+    "boundary",
+    "grid",
+    "kitnet"
+  ]
+}

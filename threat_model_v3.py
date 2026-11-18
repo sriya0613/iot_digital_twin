@@ -70,7 +70,7 @@ class HybridModel:
                                    max_iter=600, random_state=SEED)
             self.ae.fit(Xben, Xben)
             err = self._recon_err(Xben)
-            self.ae_err_ref = float(np.percentile(err, 99)) or 1.0   # 95th pct of benign error -> anomaly 1.0
+            self.ae_err_ref = float(np.percentile(err, 99)) or 1.0   # 99th pct of benign error -> anomaly 1.0
 
         # 3) multi-class head: name the attack type (trained on attack windows only)
         atk = np.array([c in SEVERITY and c not in ("", "benign") for c in classes])

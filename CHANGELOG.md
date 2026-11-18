@@ -2,7 +2,53 @@
 
 All changes relative to the original `iot_digital_twin/` repository.
 
-## [Unreleased] — Phase 2
+## [Unreleased] — Phases 3–5 preparation (branch `phase3-prep`; no twin used)
+
+Plan: `DELIVERABLE_3_PHASE3-5_PLAN.md` (approved). Steps 1–3 below need no live twin.
+
+### Corrections found in this review (disclosed)
+- **Collection kit captured on the wrong interface.** `record.sh` defaults to `tap1_0.1`, and the Phase 2
+  `COLLECTION_PROTOCOL.md` said so; the Oct 16/19 training data were captured on the mirror `twin-mon`
+  (Oct 3 on `tap1_0.1` — another cause of the Oct 3 shift). The kit now refuses to run unless the
+  recorder captures on `twin-mon`.
+- `split_by_session()` was described in `split_utils.py` (Phase 1) but not implemented. Now implemented.
+- `collect_session.sh` preflight: `ip netns list | grep -q` under `set -o pipefail` could fail at random
+  (grep exits early, the writer gets SIGPIPE). Fixed; found by the new end-to-end kit test.
+- `threat_model_v3.py`: comment said 95th percentile, code uses the 99th (comment only; no behaviour change).
+
+### Added — step 1 (collection)
+- `scripts/check_env.sh` — read-only readiness check (PASS/WARN/FAIL/SKIP, `--json`). Checks HTTP only when the
+  twin answers ping, so a proxy cannot answer for it.
+- `scripts/kit.py` — recorder-interface check, session metadata files, beacon period rotation
+- `scripts/merge_sessions.py` — `session_id` per window from `data/sessions/*.json`; legacy data → `L<date>`
+- `data/session_split.template.json` — proposed 10 / 3 / 3 split + spares (**not registered**)
+- `collect_session.sh` scenarios: `benign-burst`, `benign-idle`, `beacon-long` (10/30/60 s ± 20%, 300 s).
+  `benign-login` from the plan was replaced by `benign-burst`: the bruteforce scenario never performs a
+  real login (basic-auth GETs on `/`), so the realistic hard negative is a browser's request burst.
+- `run_protocol.sh`: `SESSION_ID` required; writes `data/sessions/<id>.json`; marks aborted sessions
+- `split_utils.py`: `load_session_split()`, `split_by_session()`, `session_ids_of()`
+
+### Added — step 2 (offline analyses, `experiments/run_phase2b.py`, reports in `reports/phase2b/`)
+- C11 risk-score analysis and data-based reinfection threshold; EXP-2 latency with held-out models
+  (supersedes `reports/latency_fp.md`); EXP-11 label boundaries; EXP-8 θ × weight grid + heatmap;
+  C4 KitNET-style baseline on window features
+
+### Added — step 3 (recovery verification)
+- `persond/verify_heal.py` — independent read-only heal checks: baseline-image hash vs a registered
+  hash, boot (ping ≤ 60 s), service (HTTP ≤ 90 s), no containment rules left, optional client command.
+  Deviation from the plan: the running `image.raw` is not hashed, because `restore.sh` boots it before
+  the engine regains control and the firmware writes to it; that needs a hook inside `restore.sh`.
+- `healing_engine.py`: optional `verifier`; a heal is `verified` only if the windows are calm **and**
+  no check failed, else `unverified` + operator notification. Default (no verifier) unchanged.
+- `threat_db.py`: additive table `heal_checks`. `run_pipeline.py`: `--verify windows|full`,
+  `--accept-http`, `--client-cmd` (default `windows` = previous behaviour)
+
+### Tests
+- `tests/test_collection_kit.py` (real scripts with stub system commands, full protocol run),
+  `tests/test_sessions.py`, `tests/test_phase2b.py`, `tests/test_verify_heal.py`;
+  existing `persond/run_all_tests.py` still passes
+
+## Phase 2
 
 ### Corrections to Phase 1 (disclosed)
 - `reconstruct_oct3.py` (Phase 1) wrote RAW unscaled values (e.g. `pkt_count` up to 897) into

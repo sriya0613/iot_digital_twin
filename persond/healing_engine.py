@@ -57,8 +57,9 @@ WAIT_FOR_DETECTOR = 600     # detector is resetting: ignore until its heal recor
 
 class HealingEngine:
     def __init__(self, db, restore_cmd=None, containment=None, grace=GRACE_SECONDS, max_heals=MAX_HEALS,
-                 escalate_window=ESCALATE_WINDOW, verify_windows=VERIFY_WINDOWS):
+                 escalate_window=ESCALATE_WINDOW, verify_windows=VERIFY_WINDOWS, verifier=None):
         self.db = db
+        self.verifier = verifier  # optional verify_heal.HealVerifier; None = window-based verification only (default)
         self.restore_cmd = restore_cmd or FAKE_RESTORE
         self.net = containment or Containment("print")
         self.grace = grace
@@ -102,9 +103,10 @@ class HealingEngine:
         return n >= self.max_heals, n
 
     # ---- verification ----------------------------------------------------------------------
-    def start_verify(self, dev, heal_id, healed_at):
+    def start_verify(self, dev, heal_id, healed_at, checks_ok=True, failed=()):
         if heal_id is not None:
-            self.verifying[dev] = {"heal_id": heal_id, "clean": 0, "hi": 0, "healed_at": healed_at}
+            self.verifying[dev] = {"heal_id": heal_id, "clean": 0, "hi": 0, "healed_at": healed_at,
+                                   "checks_ok": checks_ok, "failed": list(failed)}
 
     def check_verify(self, dev, a):
         """Called for each alert that arrives after the grace period. Returns True if reinfected."""
@@ -127,9 +129,14 @@ class HealingEngine:
         v["clean"] += 1
         v["hi"] = 0                                        # a calm window breaks the reinfection streak
         if v["clean"] >= self.verify_windows:
-            self.db.set_verify(v["heal_id"], "verified")
             del self.verifying[dev]
-            print("[verify] %s heal VERIFIED: %d low-risk windows after the reset" % (dev, self.verify_windows))
+            if v.get("checks_ok", True):
+                self.db.set_verify(v["heal_id"], "verified")
+                print("[verify] %s heal VERIFIED: %d low-risk windows after the reset" % (dev, self.verify_windows))
+            else:   # low-risk windows alone are not enough when an independent check failed
+                self.db.set_verify(v["heal_id"], "unverified")
+                print("[verify] %s heal UNVERIFIED: windows were low-risk but checks failed: %s"
+                      % (dev, ", ".join(v.get("failed", []))))
         return False
 
     # ---- main entry ------------------------------------------------------------------------
@@ -239,7 +246,16 @@ class HealingEngine:
             return "restored_then_held"
         self._contain("release", dev, done)
         self.isolated.discard(dev)
-        self.start_verify(dev, heal_id, done)
+        checks_ok, failed = True, []
+        if self.verifier is not None and heal_id is not None:
+            r = self.verifier.verify(dev)                     # read-only checks; blocks like the restore does
+            self.db.record_heal_checks(heal_id, r)
+            checks_ok, failed = r["ok"], r["failed"]
+            print("    -> independent checks: %s%s" % ("all passed" if checks_ok else "FAILED " + ", ".join(failed),
+                                                    " (not checked: %s)" % ", ".join(r["skipped"]) if r["skipped"] else ""))
+            if not checks_ok:
+                self.notify(dev, "heal checks failed: %s" % ", ".join(failed), done)
+        self.start_verify(dev, heal_id, done, checks_ok, failed)
         return "restored"
 
 

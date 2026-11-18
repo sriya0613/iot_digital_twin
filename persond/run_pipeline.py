@@ -74,6 +74,11 @@ def main():
     ap.add_argument("--containment", default="print", choices=["print", "ryu"])
     ap.add_argument("--ryu-url", default="http://127.0.0.1:8080")
     ap.add_argument("--dpid", type=int)
+    ap.add_argument("--verify", default="windows", choices=["windows", "full"],
+                    help="windows = low-risk windows after a heal (default, as before); full = also run "
+                         "verify_heal.py's independent checks (baseline hash, boot, service, network, client)")
+    ap.add_argument("--accept-http", help="with --verify full: accepted HTTP codes, e.g. 200,302 (default any)")
+    ap.add_argument("--client-cmd", help="with --verify full: command that must succeed after a heal")
     a = ap.parse_args()
 
     if a.follow:
@@ -85,8 +90,13 @@ def main():
 
     db = ThreatDatabase(a.db)
     cont = Containment(a.containment, a.ryu_url, a.dpid)
+    verifier = None
+    if a.verify == "full":
+        from verify_heal import HealVerifier
+        verifier = HealVerifier(cont, accept_http=[int(x) for x in a.accept_http.split(",")] if a.accept_http else None,
+                                client_cmd=a.client_cmd)
     eng = HealingEngine(db, shlex.split(a.restore_cmd, posix=(os.name != "nt")) if a.restore_cmd else None,
-                        containment=cont)
+                        containment=cont, verifier=verifier)
     counts = Counter()
     try:
         for name, lines in sources:

@@ -1,0 +1,38 @@
+{
+  "benign": {
+    "n": 158,
+    "partial": 13,
+    "rate_full": 0.12921055955538713,
+    "rate_partial": 0.0350450831220062
+  },
+  "scan": {
+    "n": 45,
+    "partial": 15,
+    "rate_full": 0.6102027632919473,
+    "rate_partial": 0.4982739259475502
+  },
+  "bruteforce": {
+    "n": 134,
+    "partial": 8,
+    "rate_full": 1.0,
+    "rate_partial": 1.0
+  },
+  "dos": {
+    "n": 34,
+    "partial": 13,
+    "rate_full": 1.0,
+    "rate_partial": 1.0
+  },
+  "beacon": {
+    "n": 72,
+    "partial": 5,
+    "rate_full": 0.13443864421733695,
+    "rate_partial": 0.18932676518883412
+  },
+  "benign_after_attack": {
+    "n": 0,
+    "fp_rate": null,
+    "other_n": 158,
+    "other_fp_rate": 0.12146276719061527
+  }
+}
