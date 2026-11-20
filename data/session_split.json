@@ -1,0 +1,32 @@
+{
+  "registered": "2026-11-21",
+  "_note": "Registered before any Phase 4 session was collected. Do not edit after S01. If a planned session fails validation, the next spare (in order) takes its role in the same part; record that substitution in CHANGELOG.md. Legacy Oct 16/19 data are training-only; Oct 3 (different capture point) is reported separately.",
+  "train": [
+    "L20261016",
+    "L20261019",
+    "S01",
+    "S02",
+    "S03",
+    "S05",
+    "S06",
+    "S08",
+    "S10",
+    "S11",
+    "S13",
+    "S15"
+  ],
+  "val": [
+    "S04",
+    "S09",
+    "S14"
+  ],
+  "test": [
+    "S07",
+    "S12",
+    "S16"
+  ],
+  "spares": [
+    "S17",
+    "S18"
+  ]
+}

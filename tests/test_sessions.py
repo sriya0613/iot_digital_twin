@@ -104,5 +104,16 @@ def test_template_is_a_valid_split():
     assert all(not s.startswith("L") for s in parts["val"] + parts["test"])
 
 
+def test_registered_split_is_valid_and_unchanged_in_shape():
+    p = os.path.join(ROOT, "data", "session_split.json")
+    if not os.path.exists(p):
+        pytest.skip("split not registered yet")
+    spec = json.load(open(p))
+    assert spec["registered"]                                   # a date, set before S01
+    split = load_session_split(p)
+    assert sorted(s for s, q in split.items() if q == "test") == ["S07", "S12", "S16"]
+    assert not set(spec.get("spares", [])) & set(split)         # spares are not in any part until substituted
+
+
 def test_session_ids_of_meta():
     assert session_ids_of([{"session_id": "S01"}, {}]).tolist() == ["S01", None]

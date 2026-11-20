@@ -6,6 +6,19 @@ All changes relative to the original `iot_digital_twin/` repository.
 
 Plan: `DELIVERABLE_3_PHASE3-5_PLAN.md` (approved). Steps 1–3 below need no live twin.
 
+### Decisions recorded 2026-11-21 (before any Phase 4 session)
+- **Environment ready**: `scripts/check_env.sh` on the twin VM — 60 pass, 0 fail, 2 expected warnings
+  (host `ip_forward=1` with no route out of `atk`; runtime log `network/.state/ryu.log` modified).
+  Twin web UI answers `GET /` with HTTP 200; OVS meters supported (max 200000, drop band, kbps).
+- **Baseline registered** on the VM: `image.baseline.raw` SHA-256
+  `0965f6ddf05763f77850e53181434b8bc5214a9f13f9ed0d265773b0807da2e5`
+  (VM-local copy in `network/.state/baseline.sha256`, which git ignores; this line is the record).
+- **Phase 3 live model (D1)**: keep `models_v3_hybrid` (xgboost.json SHA-256 prefix `0a4d261e56e7647a`).
+  Phase 3 measures response mechanics; the final model is trained on the Phase 4 train sessions.
+- **Session split registered (D2)**: `data/session_split.json` — train L20261016, L20261019, S01–S03, S05, S06,
+  S08, S10, S11, S13, S15; val S04, S09, S14; test S07, S12, S16; spares S17, S18 (substitution rule in the file).
+- **D3 (temporal beacon features)**: not added; may be evaluated later as a separately reported variant.
+
 ### Corrections found in this review (disclosed)
 - **Collection kit captured on the wrong interface.** `record.sh` defaults to `tap1_0.1`, and the Phase 2
   `COLLECTION_PROTOCOL.md` said so; the Oct 16/19 training data were captured on the mirror `twin-mon`
