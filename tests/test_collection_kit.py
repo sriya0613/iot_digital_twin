@@ -20,11 +20,14 @@ import kit  # noqa: E402
 
 STUBS = {
     # sudo: drop 'ip netns exec <ns>' and run the rest, so commands run locally against stubs
-    "sudo": 'if [ "$1" = ip ] && [ "$2" = netns ] && [ "$3" = exec ]; then shift 4; fi; exec "$@"',
+    "sudo": 'case "$1" in -v|-n) exit 0;; esac; if [ "$1" = ip ] && [ "$2" = netns ] && [ "$3" = exec ]; then shift 4; fi; exec "$@"',
     "ip": 'case "$*" in "netns list") printf "atk\\ncli\\n";; route*|*"route show"*) : ;; esac; exit 0',
-    "ping": "exit 0",
-    "pgrep": 'echo "4242 sudo python3 run.py record --iface ${STUB_IFACE:-twin-mon} --window 5"',
-    "curl": 'echo "curl $*" >> "$STUB_LOG"; exit 0',
+    # ping fails the first STUB_PING_FAILS calls (counted in a file), then answers
+    "ping": 'n=$(cat "$STUB_LOG.ping" 2>/dev/null || echo 0); echo $((n+1)) > "$STUB_LOG.ping"; '
+            '[ "$n" -ge "${STUB_PING_FAILS:-0}" ]',
+    "pgrep": 'case "$*" in *watchdog*) [ -n "${STUB_WATCHDOG:-}" ] && echo "77 python3 /x/network/watchdog.py $STUB_WATCHDOG";; '
+             '*) echo "4242 sudo python3 run.py record --iface ${STUB_IFACE:-twin-mon} --window 5";; esac; exit 0',
+    "curl": 'echo "curl $*" >> "$STUB_LOG"; case "$*" in *http_code*) printf 200;; esac; exit 0',
     "nmap": 'echo "nmap $*" >> "$STUB_LOG"; exit 0',
     "hping3": 'echo "hping3 $*" >> "$STUB_LOG"; exit 0',
     "sleep": "exit 0",
@@ -43,7 +46,8 @@ def env(tmp_path):
              STUB_LOG=str(tmp_path / "calls.log"), SESSION_ID="S07", SESSION_TAG="test",
              BENIGN_BURST_SECONDS="1", BEACON_LONG_SECONDS="1",
              BEACON_LOG=str(tmp_path / "beacon_requests.jsonl"),   # never write into the repo's data/
-             KIT_SESSIONS_DIR=str(tmp_path / "sessions"), IDLE_SECONDS="0.1", HEAL_PAD="0", HEAL_CMD="true")
+             KIT_SESSIONS_DIR=str(tmp_path / "sessions"), IDLE_SECONDS="0.1", HEAL_PAD="0", HEAL_CMD="true",
+             PREFLIGHT_LOG=str(tmp_path / "preflight_waits.jsonl"))
     return e, tmp_path
 
 
@@ -126,7 +130,84 @@ def test_tests_do_not_write_repo_data(env):
     assert not os.path.exists(os.path.join(ROOT, "data", "beacon_requests.jsonl"))
 
 
+def test_preflight_waits_for_twin_and_logs_wait(env):
+    e, tmp = env
+    e["STUB_PING_FAILS"] = "2"                                  # twin silent for two checks (as after a DoS)
+    r = run(e, "benign-http")
+    assert r.returncode == 0, r.stderr
+    assert "twin ready after" in r.stdout
+    w = [json.loads(l) for l in open(tmp / "preflight_waits.jsonl")]
+    assert w[-1]["session"] == "S07" and w[-1]["before"] == "benign-http" and w[-1]["waited_s"] >= 0
+
+
+def test_preflight_gives_up_after_twin_wait(env):
+    e, tmp = env
+    e.update(STUB_PING_FAILS="1000", TWIN_WAIT="0")
+    r = run(e, "benign-http")
+    assert r.returncode != 0 and "not answering ping + HTTP" in r.stderr
+    assert not (tmp / "manifest.jsonl").exists()
+
+
+def test_preflight_refuses_self_healing_watchdog(env):
+    e, tmp = env
+    e["STUB_WATCHDOG"] = " "                                    # plain watchdog.py: heals
+    r = run(e, "benign-http")
+    assert r.returncode != 0 and "self-healing watchdog" in r.stderr
+    e["STUB_WATCHDOG"] = "--no-heal"                            # report-only watchdog is fine
+    assert run(e, "benign-http").returncode == 0
+
+
+def test_pilot_session_id_runs(env):
+    e, tmp = env
+    e["SESSION_ID"] = "P01"
+    r = subprocess.run(["bash", os.path.join(ROOT, "scripts", "run_protocol.sh")], env=e,
+                       capture_output=True, text=True, timeout=240)
+    assert r.returncode == 0, r.stderr[-1500:]
+    assert json.load(open(tmp / "sessions" / "P01.json"))["status"] == "complete"
+
+
+def test_build_dataset_relative_paths_and_filtering(tmp_path):
+    """Real stream/run.py build. Relative raw paths, an empty file and an Oct 3 (tap1_0.1) file:
+    only the twin-mon file is built (pilot S00 bugs)."""
+    pytest.importorskip("scapy")
+    import shutil
+    good = os.path.join(ROOT, "data", "raw", "session_20261019T175725.jsonl")      # twin-mon, 1 window
+    oct3 = os.path.join(ROOT, "data", "raw", "session_20261003T103513.jsonl")      # tap1_0.1
+    if not (os.path.exists(good) and os.path.exists(oct3)):
+        pytest.skip("raw files not present")
+    shutil.copy(good, tmp_path / "a.jsonl"); shutil.copy(oct3, tmp_path / "b.jsonl")
+    (tmp_path / "empty.jsonl").write_text("")
+    r = subprocess.run(["bash", os.path.join(ROOT, "scripts", "build_dataset.sh"), "out.jsonl",
+                        "a.jsonl", "b.jsonl", "empty.jsonl"], cwd=str(tmp_path), capture_output=True, text=True, timeout=120)
+    assert "[build] 1 raw file(s) captured on twin-mon" in r.stdout, r.stdout + r.stderr
+    assert "skipping b.jsonl (captured on 'tap1_0.1'" in r.stderr and "skipping empty.jsonl (empty)" in r.stderr
+    assert (tmp_path / "out.jsonl").exists()                   # written where asked, not inside stream/
+    assert not os.path.exists(os.path.join(ROOT, "stream", "out.jsonl"))
+
+
 # ------------------------------------------------------------------ kit.py units
+def test_watchdog_healing_parsing():
+    assert kit.watchdog_healing(["17579 python3 /h/network/watchdog.py"]) is True
+    assert kit.watchdog_healing(["1 python3 network/watchdog.py --no-heal"]) is False
+    assert kit.watchdog_healing(["1 python3 network/watchdog.py --status --json"]) is False
+    assert kit.watchdog_healing(["1 pgrep -af watchdog.py", "2 bash"]) is False
+    assert kit.watchdog_healing([]) is False
+
+
+def test_raw_files_filter(tmp_path):
+    (tmp_path / "e.jsonl").write_text("")
+    (tmp_path / "m.jsonl").write_text(json.dumps({"monitors": {"network": "twin-mon"}}) + "\n")
+    (tmp_path / "t.jsonl").write_text(json.dumps({"monitors": {"network": "tap1_0.1"}}) + "\n")
+    cwd = os.getcwd(); os.chdir(tmp_path)
+    try:
+        ok, skipped = kit.raw_files(["e.jsonl", "m.jsonl", "t.jsonl", "missing.jsonl"])
+    finally:
+        os.chdir(cwd)
+    assert ok == [str(tmp_path / "m.jsonl")]                    # absolute
+    assert [p for p, _ in skipped] == ["e.jsonl", "t.jsonl", "missing.jsonl"]
+
+
+
 def test_recorder_iface_parsing():
     assert kit.recorder_iface(["1 sudo python3 run.py record --iface twin-mon --window 5"]) == "twin-mon"
     assert kit.recorder_iface(["1 python3 run.py record --window 5"]) == "tap1_0.1"       # run.py default
@@ -148,7 +229,8 @@ def test_session_start_stop_and_no_reuse(tmp_path):
 
 
 def test_session_id_format_enforced(tmp_path):
-    for bad in ("S1", "s01", "S001", "X01", ""):
+    kit.session_start("P01", sessions_dir=str(tmp_path), collect_env=False)      # pilots are allowed
+    for bad in ("S1", "s01", "S001", "X01", "P1", ""):
         with pytest.raises(ValueError):
             kit.session_start(bad, sessions_dir=str(tmp_path), collect_env=False)
 

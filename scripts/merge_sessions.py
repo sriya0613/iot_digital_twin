@@ -6,8 +6,10 @@
 
 Rules
   * a window belongs to session S if its midpoint lies inside S's [start_epoch, stop_epoch];
-  * windows earlier than the first session file are legacy data and get "L<YYYYMMDD>" (UTC date of
-    the window), e.g. L20261016 - legacy data stays identifiable and is never mixed with S01..S99;
+  * windows before LEGACY_BEFORE (2026-11-01 00:00 UTC, before any Phase 4 recording) that are in no
+    session are legacy data and get "L<YYYYMMDD>" (UTC date), e.g. L20261016. A fixed date, not "before
+    the first session file": the S00 pilot showed a recorder started a few seconds early would otherwise
+    turn those windows into a bogus legacy session (L20261120);
   * any other window (between sessions, recorder running before/after a session) gets None;
   * a labelled (benign/malware) window outside every session is reported, because it means a run
     was labelled while no session was open;
@@ -23,11 +25,12 @@ import time
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LEGACY_BEFORE = 1793491200.0          # 2026-11-01T00:00:00Z
 
 
 def load_sessions(sessions_dir, allow_open=False):
     sess = []
-    for p in sorted(glob.glob(os.path.join(sessions_dir, "S*.json"))):
+    for p in sorted(glob.glob(os.path.join(sessions_dir, "S*.json")) + glob.glob(os.path.join(sessions_dir, "P*.json"))):   # P = pilot
         with open(p) as f:
             s = json.load(f)
         if s.get("stop_epoch") is None:
@@ -43,9 +46,8 @@ def load_sessions(sessions_dir, allow_open=False):
     return sess
 
 
-def assign(windows, sessions):
+def assign(windows, sessions, legacy_before=LEGACY_BEFORE):
     """Return list of session ids (str or None), one per window."""
-    first = sessions[0]["start_epoch"] if sessions else float("inf")
     out = []
     for w in windows:
         mid = (float(w["window_start_epoch"]) + float(w["window_end_epoch"])) / 2
@@ -54,7 +56,7 @@ def assign(windows, sessions):
             if s["start_epoch"] <= mid <= s["stop_epoch"]:
                 sid = s["session_id"]
                 break
-        if sid is None and mid < first:
+        if sid is None and mid < legacy_before:
             sid = "L" + time.strftime("%Y%m%d", time.gmtime(mid))
         out.append(sid)
     return out
@@ -66,6 +68,7 @@ def main():
     ap.add_argument("--sessions-dir", default=os.path.join(ROOT, "data", "sessions"))
     ap.add_argument("--out")
     ap.add_argument("--allow-open", action="store_true")
+    ap.add_argument("--legacy-before", type=float, default=LEGACY_BEFORE, help="epoch; default 2026-11-01 UTC")
     a = ap.parse_args()
     default_out = (a.dataset[:-len(".jsonl")] + "_sessions.jsonl") if a.dataset.endswith(".jsonl") else a.dataset + ".sessions"
     out = a.out or default_out
@@ -74,7 +77,7 @@ def main():
     sessions = load_sessions(a.sessions_dir, a.allow_open)
     with open(a.dataset) as f:
         windows = [json.loads(l) for l in f if l.strip()]
-    sids = assign(windows, sessions)
+    sids = assign(windows, sessions, a.legacy_before)
     orphan = Counter()
     with open(out, "w") as f:
         for w, sid in zip(windows, sids):

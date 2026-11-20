@@ -18,6 +18,12 @@ Goal: independent sessions so the final test set has **≥ 3 independent attack 
 
 Check the environment first (read-only, changes nothing): `bash scripts/check_env.sh`.
 
+**No self-healing watchdog during collection.** `twin_net.sh up` normally starts `network/watchdog.py`, which
+restores the twin when ping/HTTP fail for ~15 s. A DoS or bruteforce episode causes exactly that, so the
+watchdog would restore the twin in the middle of attack data (pilot S00). Bring the twin up with
+`sudo NOWATCHDOG=1 bash network/twin_net.sh up`; `collect_session.sh` refuses to run while a healing watchdog
+is active (a `--no-heal` watchdog is allowed). The watchdog is used again in Phase 3, where healing is tested.
+
 ## Safety
 
 - All attacks are **simulated** traffic generators (nmap, hping3, curl loops). No malware binaries.
@@ -28,18 +34,26 @@ Check the environment first (read-only, changes nothing): `bash scripts/check_en
 ## Sessions
 
 Session IDs are `S01`–`S99`, never reused (`kit.py` refuses to overwrite `data/sessions/<id>.json`).
-`S00` is the pilot: it checks the kit end to end and is **never** used in results.
+Pilots use `P01`–`P99` (S00 was the first pilot, before P IDs existed): they check the kit end to end, are
+rejected by the split loader, and are **never** used in results.
 
 **Before S01**, write `data/session_split.json` (which session IDs are train / val / test) and commit it. Assignment is decided before any session is collected or looked at.
 
 ## One session (≈ 40 min)
 
 ```bash
-./twin.sh restart                                  # clean baseline; wait until ./twin.sh status says ping answers
+sudo bash network/twin_net.sh down                 # clean baseline, no watchdog
+sudo NOWATCHDOG=1 bash network/twin_net.sh up
+bash network/twin_net.sh status                    # wait for ALL OK; then ~2 min for the web server
 IFACE=twin-mon ./record.sh                         # terminal 1 - leave running
-SESSION_ID=S07 SESSION_TAG="operator=<name>" ./scripts/run_protocol.sh   # terminal 2
+SESSION_ID=S07 SESSION_TAG="operator=<name>" ./scripts/run_protocol.sh   # terminal 2 (asks for sudo once)
 # Ctrl-C record.sh when run_protocol.sh says complete
 ```
+
+Keep the VM and the host awake (no suspend; screen lock is fine). Before every episode the preflight waits up
+to 120 s for the twin to answer ping **and** HTTP; any wait is logged to `data/preflight_waits.jsonl`
+(after a DoS this is the twin's recovery time). `record.sh` leaves an empty raw file when stopped;
+`build_dataset.sh` skips it.
 
 `run_protocol.sh`:
 1. writes `data/sessions/S07.json` (start time, host load, QEMU uptime, tool versions, git commit, model hash, episode order);
@@ -74,7 +88,7 @@ Single episodes: `SESSION_ID=S07 ./scripts/collect_session.sh <scenario>`.
 ## Build and validate
 
 ```bash
-./scripts/build_dataset.sh data/dataset_v4.jsonl             # all raw sessions in one pass
+./scripts/build_dataset.sh data/dataset_v4.jsonl             # all non-empty raw files captured on twin-mon
 python3 -I scripts/merge_sessions.py data/dataset_v4.jsonl    # writes data/dataset_v4_sessions.jsonl
 python3 -I scripts/validate_session.py data/dataset_v4_sessions.jsonl --min-episodes 3
 ```

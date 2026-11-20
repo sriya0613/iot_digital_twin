@@ -152,6 +152,8 @@ def load_session_split(path):
         for sid in ids:
             if sid in where:
                 raise ValueError("%s: session %s is in both %s and %s" % (path, sid, where[sid], part))
+            if str(sid).startswith("P"):
+                raise ValueError("%s: pilot session %s may not be used in any split" % (path, sid))
             if str(sid).startswith("L") and part != "train":
                 raise ValueError("%s: legacy session %s may only be used for training" % (path, sid))
             where[sid] = part

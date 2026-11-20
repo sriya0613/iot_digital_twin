@@ -48,7 +48,27 @@ KIT="python3 -I $HERE/scripts/kit.py"
 fail() { echo "[preflight] FAIL: $*" >&2; exit 1; }
 for c in python3 ip curl; do command -v "$c" >/dev/null || fail "missing command $c"; done
 for ns in atk cli; do ip netns list | grep -w "$ns" >/dev/null || fail "namespace '$ns' missing (run network/twin_net.sh up)"; done
-ping -c1 -W2 "$TWIN_IP" >/dev/null 2>&1 || fail "twin $TWIN_IP not answering (./twin.sh status)"
+# A self-healing watchdog restores the twin whenever ping/HTTP fail for ~15 s - which a DoS or a
+# bruteforce run causes - so it would put a restore in the middle of attack data (seen in pilot S00).
+[ "$(pgrep -af 'watchdog.py' | $KIT watchdog-healing)" = no ] || fail "a self-healing watchdog is running and would restore the twin mid-session. Restart without it: sudo bash network/twin_net.sh down && sudo NOWATCHDOG=1 bash network/twin_net.sh up"
+# Readiness: after a flood the twin needs a few seconds before it answers again (pilot S00: one 2-s ping
+# right after the DoS was lost). Wait up to TWIN_WAIT s for ping AND HTTP; log how long it took.
+if [ "$SCENARIO" != heal ]; then
+  TWIN_WAIT="${TWIN_WAIT:-120}"; t0=$(date +%s); tries=0
+  until ping -c1 -W2 "$TWIN_IP" >/dev/null 2>&1 && \
+        [ "$(curl --noproxy '*' -s -o /dev/null -m 3 -w '%{http_code}' "http://$TWIN_IP/" 2>/dev/null || true)" != "000" ]; do
+    tries=$((tries+1))
+    [ $(( $(date +%s) - t0 )) -ge "$TWIN_WAIT" ] && fail "twin $TWIN_IP not answering ping + HTTP after ${TWIN_WAIT}s (./twin.sh status)"
+    [ $tries = 1 ] && echo "[preflight] twin not ready yet - waiting up to ${TWIN_WAIT}s"
+    sleep 2
+  done
+  WAITED=$(( $(date +%s) - t0 ))
+  if [ "$tries" -gt 0 ]; then
+    echo "[preflight] twin ready after ${WAITED}s"
+    echo "{\"session\": \"${SID:-}\", \"before\": \"$SCENARIO\", \"waited_s\": $WAITED, \"at\": $(date +%s)}" \
+      >> "${PREFLIGHT_LOG:-$HERE/data/preflight_waits.jsonl}"
+  fi
+fi
 REC_IFACE="$(pgrep -af 'run.py record' | $KIT recorder-iface)"
 [ -n "$REC_IFACE" ] || fail "recorder not running - start 'IFACE=$CAPTURE_IFACE ./record.sh' in another terminal first"
 [ "$REC_IFACE" = "$CAPTURE_IFACE" ] || fail "recorder captures on '$REC_IFACE', must be '$CAPTURE_IFACE' (restart it: IFACE=$CAPTURE_IFACE ./record.sh)"

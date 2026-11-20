@@ -39,6 +39,13 @@ def test_assign_sessions_legacy_and_gaps():
     assert got[1:] == ["S01", None, "S02", None]
 
 
+def test_window_just_before_first_session_is_not_legacy():
+    """Pilot S00: the recorder started 9 s before the session; that window must not become 'L<date>'."""
+    s = [sess("S00", T1, T1 + 1000)]
+    assert ms.assign([win(T1 - 9)], s) == [None]
+    assert T1 > ms.LEGACY_BEFORE > T0
+
+
 def test_window_assigned_by_midpoint():
     s = [sess("S01", T1, T1 + 100)]
     assert ms.assign([win(T1 - 2)], s) == ["S01"]       # midpoint T1+0.5 inside
@@ -55,6 +62,12 @@ def test_overlap_and_open_session_rejected(tmp_path):
     with pytest.raises(ValueError, match="no stop_epoch"):
         ms.load_sessions(str(d))
     assert ms.load_sessions(str(d), allow_open=True)[1]["stop_epoch"] == float("inf")
+
+
+def test_pilot_session_files_are_loaded(tmp_path):
+    d = tmp_path / "s"; d.mkdir()
+    (d / "P01.json").write_text(json.dumps(sess("P01", T1, T1 + 100)))
+    assert ms.assign([win(T1 + 10)], ms.load_sessions(str(d))) == ["P01"]
 
 
 def test_cli_writes_new_file_and_flags_orphans(tmp_path):
@@ -90,6 +103,7 @@ def test_split_valid_and_indices(tmp_path):
     ({"train": ["S01"], "val": ["S01"], "test": ["S02"]}, "both"),
     ({"train": ["S01"], "val": ["L20261016"], "test": ["S02"]}, "legacy"),
     ({"train": ["S01"], "val": [], "test": ["S02"]}, "non-empty"),
+    ({"train": ["S01", "P01"], "val": ["S03"], "test": ["S02"]}, "pilot"),
     ({"train": ["S01"], "test": ["S02"]}, "non-empty"),
 ])
 def test_split_rejects_bad_files(tmp_path, spec, msg):

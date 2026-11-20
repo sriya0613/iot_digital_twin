@@ -19,6 +19,24 @@ Plan: `DELIVERABLE_3_PHASE3-5_PLAN.md` (approved). Steps 1–3 below need no liv
   S08, S10, S11, S13, S15; val S04, S09, S14; test S07, S12, S16; spares S17, S18 (substitution rule in the file).
 - **D3 (temporal beacon features)**: not added; may be evaluated later as a separately reported variant.
 
+### Pilot S00 on the twin (2026-11-21) — kit problems found and fixed
+S00 ran 8 of 13 episodes (4 benign, beacon-long 60 s, beacon, scan-slow, DoS) and stopped at the preflight
+after the DoS; built, merged and validated: 309 windows, labels consistent with the episodes
+(beacon 74, scan 15, DoS 5, benign 170 in 7 runs), all three monitors alive. Not yet exercised: bruteforce,
+full scan, final heal. Observed: hping sent ~178k packets/s, the mirror captured ~2–3k/s (flood heavily
+under-sampled by the network monitor — threats to validity). Fixes:
+- **Self-healing watchdog** restored the twin at the start of a first S00 attempt; during collection it
+  would restore the twin mid-DoS. Collection now runs without it (`NOWATCHDOG=1`); preflight refuses a
+  healing watchdog (`kit.py watchdog-healing`).
+- **Readiness**: one 2-s ping right after the DoS was lost although the twin was alive (same emulator
+  process throughout). Preflight now waits up to 120 s for ping + HTTP and logs the wait.
+- `build_dataset.sh`: relative raw/out paths broke after `cd stream/`; now absolute. Skips empty raw files
+  (left by `record.sh` when stopped) and files not captured on `twin-mon` (excludes Oct 3 by default).
+- `merge_sessions.py`: legacy sessions only before 2026-11-01 UTC (a recorder started 9 s early produced a
+  bogus `L20261120`); pilot session files (`P*.json`) are read.
+- Pilot IDs `P01`–`P99`; the split loader rejects them. `run_protocol.sh` keeps sudo authorised.
+- On the VM, discarded files are kept in `data/raw_discarded/` and `data/sessions_discarded/` with a README.
+
 ### Corrections found in this review (disclosed)
 - **Collection kit captured on the wrong interface.** `record.sh` defaults to `tap1_0.1`, and the Phase 2
   `COLLECTION_PROTOCOL.md` said so; the Oct 16/19 training data were captured on the mirror `twin-mon`
