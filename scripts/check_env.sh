@@ -5,7 +5,7 @@
 #   bash scripts/check_env.sh --json     # same checks, one JSON object (for the readiness report)
 #
 # It changes NOTHING: no interface, bridge, flow, namespace, file or process is created,
-# modified or stopped, and no packet is sent to the twin except one ping and one HTTP HEAD
+# modified or stopped, and no packet is sent to the twin except one ping and one HTTP GET
 # when the twin is already up. Checks that need root use `sudo -n` (never prompts); without
 # passwordless sudo they are reported as SKIP. Run it on the twin host, from the repo root.
 #
