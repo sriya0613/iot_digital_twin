@@ -108,7 +108,7 @@ else rec WARN ryu "venv" "$RYU_VENV/bin/ryu-manager not found (set RYU_VENV)"; f
 for ns in atk:192.168.0.10 cli:192.168.0.20; do
   n=${ns%%:*}; ip=${ns##*:}
   if ip netns list 2>/dev/null | grep -qw "$n"; then
-    A=$(asroot ip -n "$n" -4 addr show 2>/dev/null | grep -o "inet [0-9.]*" | head -1)
+    A=$(asroot ip -n "$n" -4 addr show 2>/dev/null | grep -o "inet [0-9.]*" | grep -v "inet 127\." | head -1)   # skip loopback
     if [ $? = 99 ] || [ "$SUDO" = NONE ]; then rec SKIP netns "$n address" "needs sudo"
     else [ "$A" = "inet $ip" ] && rec PASS netns "$n address" "$ip" || rec FAIL netns "$n address" "got '${A:-none}', want $ip"; fi
   else rec FAIL netns "$n" "namespace missing"; fi
@@ -127,11 +127,11 @@ if ping -c1 -W2 "$DEV_IP" >/dev/null 2>&1; then
   rec PASS twin "ping $DEV_IP" "answers"
   # only ask for HTTP when the twin answered ping: a proxy or captive network can otherwise answer
   # in the twin's place and give a status code that did not come from the twin
-  HC=$(curl --noproxy "*" -s -o /dev/null -m 5 -I -w '%{http_code}' "http://$DEV_IP/" 2>/dev/null)
-  rec "$([ -n "$HC" ] && [ "$HC" != 000 ] && echo PASS || echo WARN)" twin "HTTP HEAD /" "status ${HC:-none} (record this code: heal check factor 3 uses it)"
+  HC=$(curl --noproxy "*" -s -o /dev/null -m 10 -w '%{http_code}' "http://$DEV_IP/" 2>/dev/null)
+  rec "$([ -n "$HC" ] && [ "$HC" != 000 ] && echo PASS || echo WARN)" twin "HTTP GET /" "status ${HC:-none} (record this code: heal check factor 3 uses it)"
 else
   rec WARN twin "ping $DEV_IP" "no answer (twin down?)"
-  rec SKIP twin "HTTP HEAD /" "twin not answering ping"
+  rec SKIP twin "HTTP GET /" "twin not answering ping"
 fi
 ARP=$(ip neigh show "$DEV_IP" 2>/dev/null | grep -o 'lladdr [0-9a-f:]*' | cut -d' ' -f2)
 [ -z "$ARP" ] && rec WARN twin "twin MAC" "not in ARP cache yet" || { [ "$ARP" = "$DEV_MAC" ] && rec PASS twin "twin MAC" "$ARP" || rec FAIL twin "twin MAC" "$ARP != $DEV_MAC (containment.py DEVICE_MACS)"; }
