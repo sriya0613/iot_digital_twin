@@ -1,0 +1,10 @@
+{
+  "started": "2026-11-21T08:02:53",
+  "n_outer": 50,
+  "n": 100,
+  "which": [
+    "nested",
+    "temporal",
+    "aetrigger"
+  ]
+}

@@ -19,6 +19,12 @@ Plan: `DELIVERABLE_3_PHASE3-5_PLAN.md` (approved). Steps 1–3 below need no liv
   S08, S10, S11, S13, S15; val S04, S09, S14; test S07, S12, S16; spares S17, S18 (substitution rule in the file).
 - **D3 (temporal beacon features)**: not added; may be evaluated later as a separately reported variant.
 
+### Phase 2c — pre-declared improvements (2026-11-21, offline)
+- `experiments/PHASE2C_PREREG.md` committed (`b7387e9`) before running; `experiments/run_phase2c.py`,
+  `reports/phase2c/` (A nested selection, B temporal features, C anomaly trigger), `tests/test_phase2c.py`
+  (temporal features are causal). Nested selection: F1 0.846 vs 0.757 but FPR 0.296 vs 0.114; temporal
+  features +0.03 F1, beacon recall +0.14–0.16; anomaly trigger not adopted (negative result).
+
 ### Pilot S00 on the twin (2026-11-21) — kit problems found and fixed
 S00 ran 8 of 13 episodes (4 benign, beacon-long 60 s, beacon, scan-slow, DoS) and stopped at the preflight
 after the DoS; built, merged and validated: 309 windows, labels consistent with the episodes
