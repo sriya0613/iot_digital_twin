@@ -1,0 +1,138 @@
+== T1 clean heal 1 start 1795284044.342138075
+[twin_net] removed stale tap1_0
+[twin_net] restoring in tmux session 'twin' (attempt 1; watch: sudo tmux attach -t twin)
+[twin_net] healed: 192.168.0.1 answers through br-twin after 118 s (restore.sh exit 0, attempt 1)
+
+real	1m57.768s
+user	0m0.011s
+sys	0m0.034s
+== T1 heal 1 done 1795284162.136060704
+{
+  "ok": true,
+  "failed": [],
+  "skipped": [],
+  "checks": [
+    {
+      "factor": "baseline",
+      "ok": true,
+      "detail": "sha256 0965f6ddf05763f7 == registered 0965f6ddf05763f7",
+      "seconds": 6.425
+    },
+    {
+      "factor": "boot",
+      "ok": true,
+      "detail": "answers ping",
+      "seconds": 0.022
+    },
+    {
+      "factor": "service",
+      "ok": true,
+      "detail": "HTTP 200",
+      "seconds": 41.802
+    },
+    {
+      "factor": "network",
+      "ok": true,
+      "detail": "no containment rules left",
+      "seconds": 0.05
+    },
+    {
+      "factor": "client",
+      "ok": true,
+      "detail": "ok: sudo ip netns exec cli ping -c1 -W1 192.168.0.1",
+      "seconds": 0.082
+    }
+  ]
+}
+== T1 clean heal 2 start 1795284240.762959457
+[twin_net] removed stale tap1_0
+[twin_net] restoring in tmux session 'twin' (attempt 1; watch: sudo tmux attach -t twin)
+[twin_net] healed: 192.168.0.1 answers through br-twin after 97 s (restore.sh exit 0, attempt 1)
+
+real	1m36.294s
+user	0m0.011s
+sys	0m0.025s
+== T1 heal 2 done 1795284337.094526654
+{
+  "ok": true,
+  "failed": [],
+  "skipped": [],
+  "checks": [
+    {
+      "factor": "baseline",
+      "ok": true,
+      "detail": "sha256 0965f6ddf05763f7 == registered 0965f6ddf05763f7",
+      "seconds": 1.571
+    },
+    {
+      "factor": "boot",
+      "ok": true,
+      "detail": "answers ping",
+      "seconds": 0.029
+    },
+    {
+      "factor": "service",
+      "ok": true,
+      "detail": "HTTP 200",
+      "seconds": 77.566
+    },
+    {
+      "factor": "network",
+      "ok": true,
+      "detail": "no containment rules left",
+      "seconds": 0.028
+    },
+    {
+      "factor": "client",
+      "ok": true,
+      "detail": "ok: sudo ip netns exec cli ping -c1 -W1 192.168.0.1",
+      "seconds": 0.131
+    }
+  ]
+}
+== T1 clean heal 3 start 1795284446.764496256
+[twin_net] removed stale tap1_0
+[twin_net] restoring in tmux session 'twin' (attempt 1; watch: sudo tmux attach -t twin)
+[twin_net] healed: 192.168.0.1 answers through br-twin after 81 s (restore.sh exit 0, attempt 1)
+
+real	1m21.743s
+user	0m0.019s
+sys	0m0.043s
+== T1 heal 3 done 1795284528.540241127
+{
+  "ok": true,
+  "failed": [],
+  "skipped": [],
+  "checks": [
+    {
+      "factor": "baseline",
+      "ok": true,
+      "detail": "sha256 0965f6ddf05763f7 == registered 0965f6ddf05763f7",
+      "seconds": 2.848
+    },
+    {
+      "factor": "boot",
+      "ok": true,
+      "detail": "answers ping",
+      "seconds": 0.013
+    },
+    {
+      "factor": "service",
+      "ok": true,
+      "detail": "HTTP 200",
+      "seconds": 65.16
+    },
+    {
+      "factor": "network",
+      "ok": true,
+      "detail": "no containment rules left",
+      "seconds": 0.01
+    },
+    {
+      "factor": "client",
+      "ok": true,
+      "detail": "ok: sudo ip netns exec cli ping -c1 -W1 192.168.0.1",
+      "seconds": 0.078
+    }
+  ]
+}

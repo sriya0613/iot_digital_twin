@@ -1,0 +1,114 @@
+=== reading follow logs/alerts.jsonl
+[twin_net] removed stale tap1_0
+[twin_net] restoring in tmux session 'twin' (attempt 1; watch: sudo tmux attach -t twin)
+[twin_net] healed: 192.168.0.1 answers through br-twin after 100 s (restore.sh exit 0, attempt 1)
+[risk  96] malicious -> QUARANTINE  (risk 96 > 70, top feature frac_tcp)
+    -> ISOLATE 192.168.0.1 via Ryu: ok=True verified=True (0.083 s) 
+    -> running restore: sudo bash network/twin_net.sh heal
+    -> restored OK in 109.0 s; ignoring 192.168.0.1 for 90 s, then verifying
+    -> RELEASE 192.168.0.1 via Ryu: ok=True verified=True (0.076 s) 
+    -> independent checks: all passed
+[risk  95] ignored - 192.168.0.1 is restoring / in grace period
+[risk  90] ignored - 192.168.0.1 is restoring / in grace period
+[risk  51] ignored - 192.168.0.1 is restoring / in grace period
+[risk  41] ignored - 192.168.0.1 is restoring / in grace period
+[risk  12] ignored - 192.168.0.1 is restoring / in grace period
+[risk  23] ignored - 192.168.0.1 is restoring / in grace period
+[risk  22] ignored - 192.168.0.1 is restoring / in grace period
+[risk  21] ignored - 192.168.0.1 is restoring / in grace period
+[risk  25] ignored - 192.168.0.1 is restoring / in grace period
+[risk  22] ignored - 192.168.0.1 is restoring / in grace period
+[risk  22] ignored - 192.168.0.1 is restoring / in grace period
+[risk  23] ignored - 192.168.0.1 is restoring / in grace period
+[risk  23] ignored - 192.168.0.1 is restoring / in grace period
+[risk  25] ignored - 192.168.0.1 is restoring / in grace period
+[risk  27] ignored - 192.168.0.1 is restoring / in grace period
+[risk  26] ignored - 192.168.0.1 is restoring / in grace period
+[risk  18] ignored - 192.168.0.1 is restoring / in grace period
+[risk  18] ignored - 192.168.0.1 is restoring / in grace period
+[risk  19] ignored - 192.168.0.1 is restoring / in grace period
+[risk  20] ignored - 192.168.0.1 is restoring / in grace period
+[risk  16] ignored - 192.168.0.1 is restoring / in grace period
+[risk  22] ignored - 192.168.0.1 is restoring / in grace period
+[risk  12] ignored - 192.168.0.1 is restoring / in grace period
+[risk  12] ignored - 192.168.0.1 is restoring / in grace period
+[risk  24] ignored - 192.168.0.1 is restoring / in grace period
+[risk  24] ignored - 192.168.0.1 is restoring / in grace period
+[risk  16] ignored - 192.168.0.1 is restoring / in grace period
+[risk   7] ignored - 192.168.0.1 is restoring / in grace period
+[risk  11] ignored - 192.168.0.1 is restoring / in grace period
+[risk  15] ignored - 192.168.0.1 is restoring / in grace period
+[risk  21] ignored - 192.168.0.1 is restoring / in grace period
+[risk  24] ignored - 192.168.0.1 is restoring / in grace period
+[risk  22] ignored - 192.168.0.1 is restoring / in grace period
+[risk  12] ignored - 192.168.0.1 is restoring / in grace period
+[risk  21] ignored - 192.168.0.1 is restoring / in grace period
+[risk  11] ignored - 192.168.0.1 is restoring / in grace period
+[risk  36] ignored - 192.168.0.1 is restoring / in grace period
+[risk  40] ignored - 192.168.0.1 is restoring / in grace period
+[risk  32] ignored - 192.168.0.1 is restoring / in grace period
+[risk  20] ignored - 192.168.0.1 is restoring / in grace period
+[verify] 192.168.0.1 heal VERIFIED: 3 low-risk windows after the reset
+[risk  51] malicious -> RATE_LIMIT  (risk 51 in 30-70, top feature mean_iat)
+    -> RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.043 s) 
+[twin_net] removed stale tap1_0
+[twin_net] restoring in tmux session 'twin' (attempt 1; watch: sudo tmux attach -t twin)
+[twin_net] healed: 192.168.0.1 answers through br-twin after 107 s (restore.sh exit 0, attempt 1)
+    -> REMOVE RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.028 s) 
+[risk  76] malicious -> QUARANTINE  (risk 76 > 70, top feature frac_tcp)
+    -> ISOLATE 192.168.0.1 via Ryu: ok=True verified=True (0.076 s) 
+    -> running restore: sudo bash network/twin_net.sh heal
+    -> restored OK in 106.8 s; ignoring 192.168.0.1 for 90 s, then verifying
+    -> RELEASE 192.168.0.1 via Ryu: ok=True verified=True (0.020 s) 
+    -> independent checks: all passed
+[risk  14] ignored - 192.168.0.1 is restoring / in grace period
+[risk  34] ignored - 192.168.0.1 is restoring / in grace period
+[risk  34] ignored - 192.168.0.1 is restoring / in grace period
+[risk  65] ignored - 192.168.0.1 is restoring / in grace period
+[risk  41] ignored - 192.168.0.1 is restoring / in grace period
+[risk  42] ignored - 192.168.0.1 is restoring / in grace period
+[risk  42] ignored - 192.168.0.1 is restoring / in grace period
+[risk  44] ignored - 192.168.0.1 is restoring / in grace period
+[risk  44] ignored - 192.168.0.1 is restoring / in grace period
+[risk  43] ignored - 192.168.0.1 is restoring / in grace period
+[risk  35] ignored - 192.168.0.1 is restoring / in grace period
+[risk  22] ignored - 192.168.0.1 is restoring / in grace period
+[risk  26] ignored - 192.168.0.1 is restoring / in grace period
+[risk  24] ignored - 192.168.0.1 is restoring / in grace period
+[risk  24] ignored - 192.168.0.1 is restoring / in grace period
+[risk  21] ignored - 192.168.0.1 is restoring / in grace period
+[risk  17] ignored - 192.168.0.1 is restoring / in grace period
+[risk  17] ignored - 192.168.0.1 is restoring / in grace period
+[risk  19] ignored - 192.168.0.1 is restoring / in grace period
+[risk  18] ignored - 192.168.0.1 is restoring / in grace period
+[risk  23] ignored - 192.168.0.1 is restoring / in grace period
+[risk  51] ignored - 192.168.0.1 is restoring / in grace period
+[risk  73] ignored - 192.168.0.1 is restoring / in grace period
+[risk  65] ignored - 192.168.0.1 is restoring / in grace period
+[risk  73] ignored - 192.168.0.1 is restoring / in grace period
+[risk  74] ignored - 192.168.0.1 is restoring / in grace period
+[risk  54] ignored - 192.168.0.1 is restoring / in grace period
+[risk  33] ignored - 192.168.0.1 is restoring / in grace period
+[risk  48] ignored - 192.168.0.1 is restoring / in grace period
+[risk  21] ignored - 192.168.0.1 is restoring / in grace period
+[risk  24] ignored - 192.168.0.1 is restoring / in grace period
+[risk  22] ignored - 192.168.0.1 is restoring / in grace period
+[risk  11] ignored - 192.168.0.1 is restoring / in grace period
+[risk  21] ignored - 192.168.0.1 is restoring / in grace period
+[risk  28] ignored - 192.168.0.1 is restoring / in grace period
+[risk  41] ignored - 192.168.0.1 is restoring / in grace period
+[risk  33] ignored - 192.168.0.1 is restoring / in grace period
+[risk   5] ignored - 192.168.0.1 is restoring / in grace period
+[risk   6] ignored - 192.168.0.1 is restoring / in grace period
+[risk   1] ignored - 192.168.0.1 is restoring / in grace period
+[verify] 192.168.0.1 heal VERIFIED: 3 low-risk windows after the reset
+[twin_net] removed stale tap1_0
+[twin_net] restoring in tmux session 'twin' (attempt 1; watch: sudo tmux attach -t twin)
+[twin_net] healed: 192.168.0.1 answers through br-twin after 110 s (restore.sh exit 0, attempt 1)
+[risk  89] malicious -> QUARANTINE  (risk 89 > 70, top feature frac_tcp)
+    -> ISOLATE 192.168.0.1 via Ryu: ok=True verified=True (0.082 s) 
+    -> running restore: sudo bash network/twin_net.sh heal
+    -> restored OK in 109.5 s; ignoring 192.168.0.1 for 90 s, then verifying
+    -> ESCALATE 192.168.0.1: 3 heals within 10 min. Auto-reset stopped, device stays isolated until a human clears it.
+[risk  95] 192.168.0.1 is held for a human (3 heals within 10 min) - not resetting
+[risk  92] 192.168.0.1 is held for a human (3 heals within 10 min) - not resetting

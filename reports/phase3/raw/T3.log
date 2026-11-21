@@ -1,0 +1,19 @@
+T3 mode=none delivered_to_twin=29694 start=1795284848.257621658 end=1795284858.627849587
+    -> RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.048 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.048}
+T3 mode=meter delivered_to_twin=22324 start=1795284879.122402373 end=1795284889.408029314
+    -> REMOVE RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.017 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.017}
+T3 mode=none delivered_to_twin=56193 start=1795284909.694679212 end=1795284919.791284291
+    -> RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.037 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.037}
+T3 mode=meter delivered_to_twin=27038 start=1795284940.110996863 end=1795284950.220683915
+    -> REMOVE RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.018 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.018}
+T3 mode=none delivered_to_twin=54977 start=1795284970.462299996 end=1795284980.576420831
+    -> RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.031 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.031}
+T3 mode=meter delivered_to_twin=24646 start=1795285000.871509062 end=1795285010.992592403
+    -> REMOVE RATE-LIMIT 192.168.0.1 via Ryu: ok=True verified=True (0.023 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.023}
+0 0x0 {} ['OUTPUT:NORMAL']

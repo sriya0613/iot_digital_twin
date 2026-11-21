@@ -1,0 +1,69 @@
+== T2 run 1 1795284688.259186927
+    -> ISOLATE 192.168.0.1 via Ryu: ok=True verified=True (0.047 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.047}
+-- atk ping x200 (expect 100% loss)
+200 packets transmitted, 0 received, 100% packet loss, time 2397ms
+
+atk http 000
+-- cli ping x5 (expect loss: whole device is isolated)
+5 packets transmitted, 0 received, 100% packet loss, time 4113ms
+
+-- host ping x5 (expect replies: restore-check exception)
+5 packets transmitted, 5 received, 0% packet loss, time 4010ms
+rtt min/avg/max/mdev = 2.632/4.031/7.011/1.552 ms
+ cookie=0xd0000001, duration=16.089s, table=0, n_packets=4, n_bytes=408, priority=300,ip,nw_src=192.168.0.1,nw_dst=192.168.0.2 actions=NORMAL
+ cookie=0xd0000001, duration=16.081s, table=0, n_packets=4, n_bytes=392, priority=300,ip,nw_src=192.168.0.2,nw_dst=192.168.0.1 actions=NORMAL
+ cookie=0xd0000001, duration=16.078s, table=0, n_packets=4, n_bytes=176, priority=300,arp actions=NORMAL
+ cookie=0xd0000001, duration=16.100s, table=0, n_packets=2, n_bytes=192, priority=200,dl_src=00:de:fa:1a:01:00 actions=drop
+ cookie=0xd0000001, duration=16.093s, table=0, n_packets=208, n_bytes=20312, priority=200,dl_dst=00:de:fa:1a:01:00 actions=drop
+    -> RELEASE 192.168.0.1 via Ryu: ok=True verified=True (0.018 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.018}
+-- atk ping after release (expect replies)
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 2.188/8.466/20.308/8.378 ms
+== T2 run 2 1795284716.921145613
+    -> ISOLATE 192.168.0.1 via Ryu: ok=True verified=True (0.038 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.038}
+-- atk ping x200 (expect 100% loss)
+200 packets transmitted, 0 received, 100% packet loss, time 2493ms
+
+atk http 000
+-- cli ping x5 (expect loss: whole device is isolated)
+5 packets transmitted, 0 received, 100% packet loss, time 4124ms
+
+-- host ping x5 (expect replies: restore-check exception)
+5 packets transmitted, 5 received, 0% packet loss, time 4012ms
+rtt min/avg/max/mdev = 1.874/4.042/8.211/2.263 ms
+ cookie=0xd0000001, duration=16.059s, table=0, n_packets=5, n_bytes=504, priority=300,ip,nw_src=192.168.0.1,nw_dst=192.168.0.2 actions=NORMAL
+ cookie=0xd0000001, duration=16.056s, table=0, n_packets=5, n_bytes=512, priority=300,ip,nw_src=192.168.0.2,nw_dst=192.168.0.1 actions=NORMAL
+ cookie=0xd0000001, duration=16.053s, table=0, n_packets=10, n_bytes=494, priority=300,arp actions=NORMAL
+ cookie=0xd0000001, duration=16.069s, table=0, n_packets=4, n_bytes=2084, priority=200,dl_src=00:de:fa:1a:01:00 actions=drop
+ cookie=0xd0000001, duration=16.065s, table=0, n_packets=208, n_bytes=20312, priority=200,dl_dst=00:de:fa:1a:01:00 actions=drop
+    -> RELEASE 192.168.0.1 via Ryu: ok=True verified=True (0.021 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.021}
+-- atk ping after release (expect replies)
+3 packets transmitted, 3 received, 0% packet loss, time 2005ms
+rtt min/avg/max/mdev = 2.540/6.147/12.788/4.701 ms
+== T2 run 3 1795284745.601560400
+    -> ISOLATE 192.168.0.1 via Ryu: ok=True verified=True (0.042 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.042}
+-- atk ping x200 (expect 100% loss)
+200 packets transmitted, 0 received, 100% packet loss, time 2276ms
+
+atk http 000
+-- cli ping x5 (expect loss: whole device is isolated)
+5 packets transmitted, 0 received, 100% packet loss, time 4104ms
+
+-- host ping x5 (expect replies: restore-check exception)
+5 packets transmitted, 5 received, 0% packet loss, time 4016ms
+rtt min/avg/max/mdev = 1.931/4.945/12.840/4.025 ms
+ cookie=0xd0000001, duration=15.833s, table=0, n_packets=4, n_bytes=408, priority=300,ip,nw_src=192.168.0.1,nw_dst=192.168.0.2 actions=NORMAL
+ cookie=0xd0000001, duration=15.827s, table=0, n_packets=4, n_bytes=392, priority=300,ip,nw_src=192.168.0.2,nw_dst=192.168.0.1 actions=NORMAL
+ cookie=0xd0000001, duration=15.822s, table=0, n_packets=0, n_bytes=0, priority=300,arp actions=NORMAL
+ cookie=0xd0000001, duration=15.844s, table=0, n_packets=0, n_bytes=0, priority=200,dl_src=00:de:fa:1a:01:00 actions=drop
+ cookie=0xd0000001, duration=15.839s, table=0, n_packets=208, n_bytes=20312, priority=200,dl_dst=00:de:fa:1a:01:00 actions=drop
+    -> RELEASE 192.168.0.1 via Ryu: ok=True verified=True (0.023 s) 
+{'ok': True, 'verified': True, 'detail': 'dpid 99778442468679', 'seconds': 0.023}
+-- atk ping after release (expect replies)
+3 packets transmitted, 3 received, 0% packet loss, time 2005ms
+rtt min/avg/max/mdev = 3.943/18.421/47.291/20.413 ms

@@ -6,6 +6,12 @@ All changes relative to the original `iot_digital_twin/` repository.
 
 Plan: `DELIVERABLE_3_PHASE3-5_PLAN.md` (approved). Steps 1–3 below need no live twin.
 
+### Phase 3 live results (2026-11-21) — `reports/phase3/RESULTS.md`, raw logs in `reports/phase3/raw/`
+- T1: 3/3 clean restores verified (81–118 s to ping; web UI +42–78 s later); baseline hash matched.
+- T2: isolate 0.038–0.047 s, attacker 200/200 dropped, host exception works. T3: meter cut delivered SYNs ≈47%.
+- T4: 3 attacks quarantined 2–6 s after start, 7/7 rules verified, 2 heals verified, ESCALATE hold on the 3rd.
+  Post-grace risk max 49. Not tested: reinfection during verification (follow-up came after verification), EXP-12d.
+
 ### Decisions recorded 2026-11-21 (before any Phase 4 session)
 - **Environment ready**: `scripts/check_env.sh` on the twin VM — 60 pass, 0 fail, 2 expected warnings
   (host `ip_forward=1` with no route out of `atk`; runtime log `network/.state/ryu.log` modified).
