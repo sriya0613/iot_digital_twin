@@ -179,13 +179,17 @@ e3() {
     local opt; case $rate in 1000) opt="-i u1000";; 10000) opt="-i u100";; flood) opt="--flood";; esac
     for t in 1 2 3; do
       local pc err; pc=$(mktemp); err=$(mktemp)
-      tcpdump -i twin-mon -nn -B 65536 -s 96 -w "$pc" 2>"$err" & local tp=$!; sleep 2
+      # -Z root: tcpdump otherwise drops to the 'tcpdump' user and cannot write the root-owned temp
+      # file, capturing nothing (first E3 run: mirror_seen=0 at every rate)
+      tcpdump -Z root -i twin-mon -nn -B 65536 -s 96 -w "$pc" 2>"$err" & local tp=$!; sleep 2
       local a1 b1; a1=$(port_ctr v-atk rx); b1=$(port_ctr $TAP tx)
       ip netns exec atk timeout 10 hping3 -S $opt -p 80 $DEV_IP >/dev/null 2>&1
       sleep 1; local a2 b2; a2=$(port_ctr v-atk rx); b2=$(port_ctr $TAP tx)
       kill -INT $tp 2>/dev/null; wait $tp 2>/dev/null
       local seen drops; seen=$(tcpdump -r "$pc" -nn "$SYN" 2>/dev/null | wc -l)
       drops=$(grep -o '[0-9]* packets dropped by kernel' "$err" | cut -d' ' -f1); drops=${drops:-0}
+      sed 's/^/    tcpdump: /' "$err" >>"$LOG"
+      [ "$seen" -gt 0 ] || [ "$((b2-b1))" -lt 100 ] || log "  WARNING: mirror capture saw nothing - see tcpdump lines in the log"
       echo "$rate,$t,$((a2-a1)),$((b2-b1)),$seen,$drops" >>"$CSV"
       log "  rate=$rate trial $t: sent(atk rx)=$((a2-a1)) delivered(tap tx)=$((b2-b1)) mirror_seen=$seen kernel_drops=$drops"
       rm -f "$pc" "$err"
