@@ -27,6 +27,9 @@ The same steps for every alert (see Self-Healing_Approach_Graded_Verified_Rollba
                    Clear a held device with:  python persond/healing_engine.py --clear 192.168.0.1
                    (or the Clear button on the dashboard)
   6. Record        every alert, action, heal, escalation, containment step and indicator -> threat.db
+  7. Restart-safe  a restore in progress is recorded; an engine that starts finds it, holds the device
+                   and keeps it isolated. Held devices are isolated again on start. Stopping the engine
+                   never lifts a quarantine (IMP-11).
 
 Only one reset runs at a time: the restore command is waited for before the next alert is read.
 Times are on the ALERT clock (window times in the feed), so replays at full speed behave correctly.
@@ -82,6 +85,20 @@ class HealingEngine:
         self.escalated = []       # (device, reason) - this run only; the database keeps all of them
         self.pending_isolate = set()   # devices whose isolate failed: retried on every record (E11: Ryu down)
         self.sleep = sleep
+        self.recover(time.time())
+
+    def recover(self, now):
+        """IMP-11: what a previous engine left unfinished is not forgotten on restart.
+        An interrupted restore counts as a failed one (device isolated, held for a human), and every
+        held device is isolated again, in case its rules were lost while no engine was running."""
+        for dev, stage, since, detail in self.db.stages():
+            if stage == "restoring":
+                print("[recover] %s: the previous engine stopped during a restore (started %.0f s ago) - "
+                      "keeping it isolated and holding it for a human" % (dev, now - since))
+                self.hold(dev, "engine stopped during a restore; result unknown", now)
+            self.db.clear_stage(dev)
+        for dev in self.db.held_devices():
+            self._isolate(dev, now)
 
     # ---- containment (diagram: SDN Controller -> Traffic Containment -> Rule Verification) ----
     def _contain(self, what, dev, at):
@@ -286,6 +303,7 @@ class HealingEngine:
 
         self.db.record_action(a, QUARANTINE, reason)
         self._isolate(dev, now)
+        self.db.set_stage(dev, "restoring", time.time(), "trigger risk %d" % a["risk_score"])
 
         # reset
         print("    -> running restore: %s" % " ".join(self.restore_cmd))
@@ -295,6 +313,7 @@ class HealingEngine:
         except OSError as e:                                  # restore command missing
             exit_code = "not run: %s" % e
         secs = round(time.time() - t0, 2)
+        self.db.clear_stage(dev)                               # the restore finished (well or badly)
         ok = exit_code == 0
         done = now + secs
         heal_id = self.db.record_heal({"device_ip": dev, "ok": ok, "exit_code": exit_code, "restore_seconds": secs,

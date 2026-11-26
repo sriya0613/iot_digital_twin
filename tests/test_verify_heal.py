@@ -6,6 +6,7 @@ The engine runs the real tests/fake_restore.py as its restore command.
 
   python3 -I -m pytest tests/test_verify_heal.py -v
 """
+import json
 import os
 import sqlite3
 import sys
@@ -281,3 +282,39 @@ def test_failed_isolate_notifies_and_stays_pending(tmp_path):
     assert any("isolate failed" in r[0] for r in db.rows("SELECT reason FROM escalations"))
     eng.handle(win(1100, 5))                                    # every new record retries
     assert net.calls.count("isolate") == 6
+
+
+# ------------------------------------------------------------------ IMP-11: state survives an engine restart
+def test_interrupted_restore_is_held_and_isolated_by_next_engine(tmp_path):
+    net = RecNet()
+    eng, db = engine(tmp_path, "crash", net)
+    db.set_stage("192.168.0.1", "restoring", 1000, "trigger risk 95")   # as left by an engine killed mid-restore
+    eng2, _ = engine(tmp_path, "crash", RecNet())                        # a new engine on the same db
+    assert "restore" in db.held_reason("192.168.0.1")
+    assert eng2.net.calls == ["isolate"] and "192.168.0.1" in eng2.isolated
+    assert db.stages() == []
+    assert eng2.handle(win(2000, 5)) == "held"                          # calm alerts do not release it
+
+
+def test_held_device_is_isolated_again_on_start(tmp_path):
+    eng, db = engine(tmp_path, "held", RecNet())
+    db.escalate("192.168.0.1", "hold", "3 heals within 10 min", 1000)
+    eng2, _ = engine(tmp_path, "held", RecNet())
+    assert eng2.net.calls == ["isolate"]
+
+
+def test_finished_restore_leaves_no_stage(tmp_path):
+    eng, db = engine(tmp_path, "done", RecNet())
+    assert eng.handle(win(1000, 95)) == "restored"
+    assert db.stages() == []
+
+
+def test_pipeline_stop_does_not_release(tmp_path):
+    import subprocess
+    feed = tmp_path / "a.jsonl"
+    feed.write_text(json.dumps(win(1000, 95)) + "\n")
+    out = subprocess.run([sys.executable, os.path.join(ROOT, "persond", "run_pipeline.py"), str(feed),
+                          "--db", str(tmp_path / "p.db"), "--restore-cmd", "false"],
+                         capture_output=True, text=True, timeout=60).stdout
+    assert "restore FAILED" in out and "would release" not in out
+    assert "containment left in place for 192.168.0.1" in out

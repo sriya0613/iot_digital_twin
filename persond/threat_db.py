@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS indicators (
     impact REAL, monitor TEXT, UNIQUE (alert_id, feature));
 CREATE TABLE IF NOT EXISTS health (
     id INTEGER PRIMARY KEY AUTOINCREMENT, device_ip TEXT, emitted_at_epoch REAL, raw_json TEXT);
+CREATE TABLE IF NOT EXISTS engine_state (
+    device_ip TEXT PRIMARY KEY, stage TEXT, since_epoch REAL, detail TEXT);
 CREATE TABLE IF NOT EXISTS heal_checks (
     id INTEGER PRIMARY KEY AUTOINCREMENT, heal_id INTEGER REFERENCES heals(id), factor TEXT,
     ok INTEGER, detail TEXT, seconds REAL);
@@ -196,6 +198,22 @@ class ThreatDatabase:
         self.con.execute("INSERT INTO health (device_ip, emitted_at_epoch, raw_json) VALUES (?,?,?)",
                          (h.get("device_ip"), h.get("emitted_at_epoch"), json.dumps(h)))
         self.con.commit()
+
+    # ---- engine state that must survive an engine restart (IMP-11) -------------------------
+    def set_stage(self, device_ip, stage, at, detail=""):
+        """stage 'restoring' = isolated and a restore is running. Cleared with clear_stage."""
+        self.con.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?,?,?)", (device_ip, stage, at, detail))
+        self.con.commit()
+
+    def clear_stage(self, device_ip):
+        self.con.execute("DELETE FROM engine_state WHERE device_ip = ?", (device_ip,))
+        self.con.commit()
+
+    def stages(self):
+        return self.con.execute("SELECT device_ip, stage, since_epoch, detail FROM engine_state").fetchall()
+
+    def held_devices(self):
+        return [r[0] for r in self.con.execute("SELECT device_ip FROM device_state WHERE status = 'held'")]
 
     # ---- generic ---------------------------------------------------------------------------
     def count(self, table):

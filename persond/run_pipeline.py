@@ -36,7 +36,7 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from alert_reader import read_alerts  # noqa: E402
-from containment import Containment, DEVICE_MACS  # noqa: E402
+from containment import Containment  # noqa: E402
 from healing_engine import HealingEngine  # noqa: E402
 from threat_db import ThreatDatabase  # noqa: E402
 
@@ -107,14 +107,13 @@ def main():
     except KeyboardInterrupt:
         print("\nstopped by Ctrl-C")
     finally:
-        # never leave a device cut off because the pipeline stopped mid-incident
-        try:
-            for dev in sorted(set(DEVICE_MACS) | set(getattr(eng, "quarantined", set()))):
-                r = cont.release(dev)
-                if a.containment == "ryu" and isinstance(r, dict) and r.get("ok"):
-                    print("[cleanup] released containment on %s" % dev)
-        except Exception as e:
-            print("[cleanup] could not release containment: %s" % e)
+        # Stopping the engine never lifts a quarantine (IMP-11: releasing here let the attacker back in
+        # mid-incident). A restarted engine picks up held devices and interrupted restores from the db.
+        left = sorted(eng.isolated | eng.pending_isolate)
+        if left:
+            print("[stop] containment left in place for %s; release with: python persond/healing_engine.py "
+                  "--clear <ip> (then the next engine run lifts it), or python persond/containment.py "
+                  "--mode ryu release <ip>" % ", ".join(left))
 
     print("\n=== summary")
     print("this run:", dict(counts))
