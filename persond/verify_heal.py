@@ -10,6 +10,10 @@ adds checks that do not depend on the detector, each reported separately:
              NOT checked: the running image.raw itself - after restore.sh boots it the firmware writes to
              it, so its hash differs from the baseline even on a perfect heal. Checking it would need a
              hook inside restore.sh between copy and boot (see scripts/check_env.sh output).
+  disk       the disk the twin booted from was the clean baseline (IMP-05): network/restore_verified.sh
+             hashes image.raw between copy and boot and records it in network/.state/last_restore.json;
+             this check needs that record to be recent (RESTORE_MAX_AGE) and to match the registered hash.
+             Skipped (not failed) when no record exists, e.g. a restore through FirmAE's own restore.sh.
   boot       the twin answers ping within BOOT_TIMEOUT (60 s)
   service    the web UI answers HTTP within SERVICE_TIMEOUT (90 s), with a status in ACCEPT_HTTP
              (default: any HTTP response; set the twin's real code once check_env.sh has recorded it)
@@ -39,6 +43,8 @@ FIRMAE_DIR = os.environ.get("FIRMAE_DIR", "/home/vboxuser/firmae/FirmAE")
 IID = os.environ.get("IID", "1")
 BASELINE_IMAGE = os.path.join(FIRMAE_DIR, "scratch", IID, "image.baseline.raw")
 REGISTRY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "network", ".state", "baseline.sha256")
+RESTORE_RECORD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "network", ".state", "last_restore.json")
+RESTORE_MAX_AGE = 900       # s: a restore record older than this is not about the heal being verified
 BOOT_TIMEOUT = 60
 SERVICE_TIMEOUT = 90
 POLL = 2.0
@@ -82,7 +88,8 @@ class HealVerifier:
     def __init__(self, containment=None, baseline_image=BASELINE_IMAGE, registry=REGISTRY,
                  boot_timeout=BOOT_TIMEOUT, service_timeout=SERVICE_TIMEOUT, accept_http=None, client_cmd=None,
                  ping=ping_once, http=http_status, hasher=sha256_file, run=run_ok,
-                 clock=time.monotonic, sleep=time.sleep, poll=POLL):
+                 clock=time.monotonic, sleep=time.sleep, poll=POLL, restore_record=RESTORE_RECORD,
+                 restore_max_age=RESTORE_MAX_AGE, wall=time.time):
         self.net = containment
         self.baseline_image, self.registry = baseline_image, registry
         self.boot_timeout, self.service_timeout = boot_timeout, service_timeout
@@ -90,6 +97,7 @@ class HealVerifier:
         self.client_cmd = client_cmd
         self.ping, self.http, self.hasher, self.run_cmd = ping, http, hasher, run
         self.clock, self.sleep, self.poll = clock, sleep, poll
+        self.restore_record, self.restore_max_age, self.wall = restore_record, restore_max_age, wall
 
     # each check returns {"factor", "ok", "detail", "seconds"}; ok is True / False / None (= not checked)
     def _timed(self, factor, fn):
@@ -110,6 +118,21 @@ class HealVerifier:
             got = self.hasher(self.baseline_image)
             return got == want, "sha256 %s %s registered %s" % (got[:16], "==" if got == want else "!=", want[:16])
         return self._timed("baseline", fn)
+
+    def check_disk(self):
+        def fn():
+            if not os.path.exists(self.restore_record):
+                return None, "no restore record (restore not run through network/restore_verified.sh)"
+            rec = json.load(open(self.restore_record))
+            age = self.wall() - float(rec.get("copied_at_epoch", 0))
+            if age > self.restore_max_age:
+                return False, "last restore record is %.0f s old - not this heal" % age
+            got, want = rec.get("disk_sha256", ""), rec.get("registered_sha256", "")
+            if not want:
+                return None, "disk sha256 %s recorded, but no registered clean hash to compare" % got[:16]
+            return got == want, "disk booted from sha256 %s %s registered %s (%.0f s ago)" % (
+                got[:16], "==" if got == want else "!=", want[:16], age)
+        return self._timed("disk", fn)
 
     def _wait(self, probe, timeout):
         end = self.clock() + timeout
@@ -160,16 +183,16 @@ class HealVerifier:
 
     # Checks that work while the device is still isolated (only the twin host can reach it), and the
     # ones that need the isolation lifted (our rules gone, a normal client reaches the device).
-    WHILE_ISOLATED = ("baseline", "boot", "service")
+    WHILE_ISOLATED = ("baseline", "disk", "boot", "service")
     AFTER_RELEASE = ("network", "client")
 
     def verify(self, ip, factors=None):
         """Run the checks (all, or only those named in factors). Returns {"ok": bool, "failed": [...],
         "skipped": [...], "checks": [...]}. ok is True only if no check FAILED; unchecked factors (None)
         are listed, not counted as passes."""
-        run = {"baseline": self.check_baseline, "boot": lambda: self.check_boot(ip),
+        run = {"baseline": self.check_baseline, "disk": self.check_disk, "boot": lambda: self.check_boot(ip),
                "service": lambda: self.check_service(ip), "network": self.check_network, "client": self.check_client}
-        names = factors or ("baseline", "boot", "service", "network", "client")
+        names = factors or ("baseline", "disk", "boot", "service", "network", "client")
         checks = [run[n]() for n in names]
         failed = [c["factor"] for c in checks if c["ok"] is False]
         skipped = [c["factor"] for c in checks if c["ok"] is None]

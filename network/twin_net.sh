@@ -32,8 +32,10 @@ TAP="tap${IID}_0"
 DEV_IP="${DEV_IP:-192.168.0.1}"
 HOST_IP="${HOST_IP:-192.168.0.2}"
 CTRL="${CTRL:-tcp:127.0.0.1:6653}"
-REAL_RESTORE="${REAL_RESTORE:-$FIRMAE_DIR/restore.sh}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# restore_verified.sh = FirmAE's restore.sh + a hash of the disk between copy and boot (IMP-05)
+REAL_RESTORE="${REAL_RESTORE:-$HERE/restore_verified.sh}"
+[ -f "$REAL_RESTORE" ] || REAL_RESTORE="$FIRMAE_DIR/restore.sh"
 ROOT="$(dirname "$HERE")"
 STATE="$HERE/.state"
 

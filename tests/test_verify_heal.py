@@ -40,6 +40,12 @@ class FakeNet:
         return self.flows
 
 
+def restore_record(tmp_path, disk="abc", registered="abc", age=60, name="last_restore.json"):
+    rec = tmp_path / name
+    rec.write_text(json.dumps({"copied_at_epoch": 10000 - age, "disk_sha256": disk, "registered_sha256": registered}))
+    return str(rec)
+
+
 def make(tmp_path, registry_hash="abc", image_hash="abc", **kw):
     img = tmp_path / "image.baseline.raw"; img.write_bytes(b"x")
     reg = tmp_path / "baseline.sha256"
@@ -47,7 +53,8 @@ def make(tmp_path, registry_hash="abc", image_hash="abc", **kw):
         reg.write_text(registry_hash + "  image\n")
     clk = Clock()
     args = dict(containment=FakeNet(), baseline_image=str(img), registry=str(reg), hasher=lambda p: image_hash,
-                ping=lambda ip: True, http=lambda ip: 200, clock=clk.now, sleep=clk.sleep)
+                ping=lambda ip: True, http=lambda ip: 200, clock=clk.now, sleep=clk.sleep,
+                restore_record=restore_record(tmp_path), wall=lambda: 10000)
     args.update(kw)
     return vh.HealVerifier(**args), clk
 
@@ -126,6 +133,28 @@ def test_http_status_ignores_proxy_env(monkeypatch):
     monkeypatch.setenv("http_proxy", "http://127.0.0.1:9")
     monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:9")
     assert vh.http_status("127.0.0.1", timeout=1) is None    # nothing listens on :80 locally, so no answer at all
+
+
+def test_disk_check_matches_recorded_restore(tmp_path):           # IMP-05
+    v, _ = make(tmp_path)
+    assert factor(v.verify("192.168.0.1"), "disk")["ok"] is True
+
+
+def test_disk_check_fails_on_wrong_hash_or_old_record(tmp_path):
+    v, _ = make(tmp_path, restore_record=restore_record(tmp_path, disk="evil", name="evil.json"))
+    assert factor(v.verify("192.168.0.1"), "disk")["ok"] is False
+    v, _ = make(tmp_path, restore_record=restore_record(tmp_path, age=3600, name="old.json"))
+    r = factor(v.verify("192.168.0.1"), "disk")
+    assert r["ok"] is False and "old" in r["detail"]
+
+
+def test_disk_check_skipped_without_record(tmp_path):
+    v, _ = make(tmp_path, restore_record=str(tmp_path / "none.json"))
+    assert factor(v.verify("192.168.0.1"), "disk")["ok"] is None
+
+
+def test_disk_is_checked_before_release():
+    assert "disk" in vh.HealVerifier.WHILE_ISOLATED
 
 
 # ------------------------------------------------------------------ engine integration
