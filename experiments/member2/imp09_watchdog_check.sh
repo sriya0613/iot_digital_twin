@@ -22,7 +22,7 @@ heals_seen() { grep -c '"event": "heal_ok"\|"event": "heal_failed"' "$FEED"; }
 q() { python3 -c "import sqlite3,sys; print(sqlite3.connect('$DB').execute(sys.argv[1]).fetchone()[0])" "$1" 2>/dev/null; }
 cleanup() {
   tmux kill-session -t wd_test 2>/dev/null
-  [ -n "$PID" ] && { kill -INT "$PID" 2>/dev/null; sleep 3; kill -9 "$PID" 2>/dev/null; }
+  [ -n "$PID" ] && { kill -INT "$PID" 2>/dev/null; for _ in $(seq 1 15); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done; kill -9 "$PID" 2>/dev/null; }
   python3 persond/containment.py --mode ryu release $DEV >>"$LOG" 2>&1
   ping -c 2 -W 2 $DEV >/dev/null 2>&1 || bash network/twin_net.sh heal >>"$LOG" 2>&1
   log "cleanup: twin answers $(ping -c1 -W2 $DEV >/dev/null 2>&1 && echo yes || echo NO), rules left $(rules)"; rm -rf "$WORK"
@@ -34,7 +34,10 @@ tmux has-session -t watchdog 2>/dev/null && { log "pause the main watchdog first
 ping -c 2 -W 2 $DEV >/dev/null 2>&1 || { log "twin not answering"; exit 1; }
 log "IMP-09 check, git $(git rev-parse --short HEAD)"
 
-python3 -u persond/run_pipeline.py --follow "$FEED" --db "$DB" --containment ryu >>"$LOG" 2>&1 & PID=$!
+python3 -u -c 'import runpy, signal, sys
+signal.signal(signal.SIGINT, signal.default_int_handler)
+sys.argv = ["persond/run_pipeline.py"] + sys.argv[1:]
+runpy.run_path("persond/run_pipeline.py", run_name="__main__")' --follow "$FEED" --db "$DB" --containment ryu >>"$LOG" 2>&1 & PID=$!
 tmux new-session -d -s wd_test "python3 -u '$ROOT/network/watchdog.py' --no-http --startup-grace 5 --alerts-out '$FEED' --health-file '$WORK/health.json' 2>&1 | tee -a '$WORK/watchdog.log'"
 sleep 15
 for n in 1 2 3; do
