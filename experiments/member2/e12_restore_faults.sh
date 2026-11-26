@@ -52,7 +52,12 @@ recover() {   # release, unfreeze/stop QEMU, normal heal; returns 0 when the twi
   bash network/twin_net.sh heal >>"$LOG" 2>&1
   ping -c 2 -W 2 $DEV >/dev/null 2>&1
 }
-cleanup() { recover >/dev/null 2>&1; log "cleanup: twin answers: $(ping -c1 -W2 $DEV >/dev/null 2>&1 && echo yes || echo NO), rules left $(rules)"; rm -rf "$WORK"; }
+cleanup() {   # only restore again if the twin is not healthy (each trial already recovered it)
+  if [ "$(rules)" != 0 ] || ! ping -c 2 -W 2 $DEV >/dev/null 2>&1 || ! pgrep -f qemu-system- >/dev/null; then
+    log "cleanup: twin not healthy - restoring it"; recover >/dev/null 2>&1
+  fi
+  log "cleanup: twin answers: $(ping -c1 -W2 $DEV >/dev/null 2>&1 && echo yes || echo NO), rules left $(rules)"; rm -rf "$WORK"
+}
 trap cleanup EXIT
 
 tmux has-session -t watchdog 2>/dev/null && { log "pause the watchdog first: sudo tmux kill-session -t watchdog"; exit 1; }
@@ -95,7 +100,7 @@ for fault in $FAULTS; do
 done
 
 { echo; echo "===== RESULT E12 ($TS, git $(git rev-parse --short HEAD)) ====="
-  echo "expect every trial: outcome restore_failed, held yes, rules 16, atk blocked"
+  echo "expect every trial: outcome restore_failed, held yes, rules 12, atk blocked"
   awk -F, 'NR>1{n[$1]++; ok[$1]+=($3=="restore_failed" && $4=="yes" && $5>0 && $6=="blocked")}
            END{for(f in n) printf "%-8s %d/%d trials kept the twin isolated and held\n", f, ok[f], n[f]}' "$CSV"
 } | tee -a "$LOG"
