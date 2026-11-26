@@ -10,10 +10,10 @@ adds checks that do not depend on the detector, each reported separately:
              NOT checked: the running image.raw itself - after restore.sh boots it the firmware writes to
              it, so its hash differs from the baseline even on a perfect heal. Checking it would need a
              hook inside restore.sh between copy and boot (see scripts/check_env.sh output).
-  disk       the disk the twin booted from was the clean baseline (IMP-05): network/restore_verified.sh
-             hashes image.raw between copy and boot and records it in network/.state/last_restore.json;
-             this check needs that record to be recent (RESTORE_MAX_AGE) and to match the registered hash.
-             Skipped (not failed) when no record exists, e.g. a restore through FirmAE's own restore.sh.
+  disk       the twin was rolled back in this heal (IMP-05): twin_net.sh heal records in
+             network/.state/last_restore.json whether image.raw got a new inode (restore.sh replaced it with
+             a copy of the baseline). The record must be recent (RESTORE_MAX_AGE). With 'baseline' this shows
+             the twin boots from the clean disk. Skipped (not failed) when there is no record.
   boot       the twin answers ping within BOOT_TIMEOUT (60 s)
   service    the web UI answers HTTP within SERVICE_TIMEOUT (90 s), with a status in ACCEPT_HTTP
              (default: any HTTP response; set the twin's real code once check_env.sh has recorded it)
@@ -120,13 +120,23 @@ class HealVerifier:
         return self._timed("baseline", fn)
 
     def check_disk(self):
+        """IMP-05: the twin was rolled back to the baseline in this heal.
+        record method "inode" (default, written by twin_net.sh heal): image.raw got a new inode, i.e. restore.sh
+        replaced it with a copy of the baseline; together with the 'baseline' check (the baseline's registered
+        hash) this shows the twin boots from the clean disk. Method "sha256" (opt-in restore_verified.sh): the
+        disk's hash between copy and boot equals the registered hash."""
         def fn():
             if not os.path.exists(self.restore_record):
-                return None, "no restore record (restore not run through network/restore_verified.sh)"
+                return None, "no restore record (twin not restored through twin_net.sh heal)"
             rec = json.load(open(self.restore_record))
-            age = self.wall() - float(rec.get("copied_at_epoch", 0))
+            when = float(rec.get("finished_epoch") or rec.get("copied_at_epoch") or 0)
+            age = self.wall() - when
             if age > self.restore_max_age:
                 return False, "last restore record is %.0f s old - not this heal" % age
+            if rec.get("method") == "inode":
+                ok = rec.get("replaced") is True
+                return ok, "image.raw %s by restore (inode %s -> %s, %.0f s ago)" % (
+                    "replaced" if ok else "NOT replaced", rec.get("inode_before"), rec.get("inode_after"), age)
             got, want = rec.get("disk_sha256", ""), rec.get("registered_sha256", "")
             if not want:
                 return None, "disk sha256 %s recorded, but no registered clean hash to compare" % got[:16]

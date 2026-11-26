@@ -153,6 +153,24 @@ def test_disk_check_skipped_without_record(tmp_path):
     assert factor(v.verify("192.168.0.1"), "disk")["ok"] is None
 
 
+def inode_record(tmp_path, before=11, after=12, age=60, name="inode.json"):
+    rec = tmp_path / name
+    rec.write_text(json.dumps({"method": "inode", "finished_epoch": 10000 - age, "inode_before": before,
+                               "inode_after": after, "replaced": before != after, "restore_rc": "0"}))
+    return str(rec)
+
+
+def test_disk_check_inode_replaced(tmp_path):                    # IMP-05 v2 (twin_net.sh heal record)
+    v, _ = make(tmp_path, restore_record=inode_record(tmp_path))
+    r = factor(v.verify("192.168.0.1"), "disk")
+    assert r["ok"] is True and "replaced" in r["detail"]
+
+
+def test_disk_check_inode_not_replaced_fails(tmp_path):
+    v, _ = make(tmp_path, restore_record=inode_record(tmp_path, before=12, after=12, name="same.json"))
+    assert factor(v.verify("192.168.0.1"), "disk")["ok"] is False
+
+
 def test_disk_is_checked_before_release():
     assert "disk" in vh.HealVerifier.WHILE_ISOLATED
 
@@ -347,3 +365,17 @@ def test_pipeline_stop_does_not_release(tmp_path):
                          capture_output=True, text=True, timeout=60).stdout
     assert "restore FAILED" in out and "would release" not in out
     assert "containment left in place for 192.168.0.1" in out
+
+
+def test_restore_failing_mid_copy_keeps_isolation_and_holds(tmp_path):   # IMP-18 / SYS-08
+    """A restore that dies part-way (e.g. cp interrupted, disk full) exits non-zero: the device must stay
+    isolated, be held for a human, and not be released by later calm alerts."""
+    script = tmp_path / "restore_dies.sh"
+    script.write_text("#!/bin/sh\necho copying...; exit 1\n")
+    net = RecNet()
+    eng, db = engine(tmp_path, "midcopy", net)
+    eng.restore_cmd = ["sh", str(script)]
+    assert eng.handle(win(1000, 95)) == "restore_failed"
+    assert "restore failed" in db.held_reason("192.168.0.1")
+    assert [eng.handle(win(t, 5)) for t in (1100, 1105)] == ["held", "held"]
+    assert "release" not in net.calls

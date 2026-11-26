@@ -144,6 +144,12 @@ heal() {   # restore from the clean baseline; retry once if the firmware fails t
   echo $$ > "$STATE/healing"; trap 'rm -f "$STATE/healing"' EXIT
 
   local tries="${HEAL_TRIES:-2}" n=0 T0=$(date +%s)
+  # IMP-05: proof that the disk was replaced. restore.sh copies the baseline to image.raw.tmp and renames
+  # it over image.raw, which gives image.raw a new inode. Only stat (metadata) is used: nothing reads the
+  # disk around the boot (reading it there broke FirmAE's boot, see restore_verified.sh).
+  local DISK_FILE="$FIRMAE_DIR/scratch/$IID/image.raw" INODE_BEFORE
+  INODE_BEFORE=$(stat -c %i "$DISK_FILE" 2>/dev/null || echo 0)
+  rm -f "$STATE/last_restore.json"
   while [ "$n" -lt "$tries" ]; do
     n=$((n+1))
     [ "$n" -gt 1 ] && say "heal attempt $n of $tries (previous boot did not come up)"
@@ -171,6 +177,11 @@ heal() {   # restore from the clean baseline; retry once if the firmware fails t
     qemu_up && attach quiet
     if ping -c 3 -W 2 "$DEV_IP" >/dev/null 2>&1; then
       say "healed: $DEV_IP answers through $BR after $(( $(date +%s) - T0 )) s (restore.sh exit $RC, attempt $n)"
+      local INODE_AFTER; INODE_AFTER=$(stat -c %i "$DISK_FILE" 2>/dev/null || echo 0)
+      printf '{"method": "inode", "started_epoch": %s, "finished_epoch": %s, "disk": "%s", "inode_before": %s, "inode_after": %s, "replaced": %s, "restore_rc": "%s", "attempt": %s}\n' \
+        "$T0" "$(date +%s)" "$DISK_FILE" "$INODE_BEFORE" "$INODE_AFTER" \
+        "$( [ "$INODE_AFTER" != 0 ] && [ "$INODE_AFTER" != "$INODE_BEFORE" ] && echo true || echo false )" "$RC" "$n" \
+        > "$STATE/last_restore.json"; chmod a+r "$STATE/last_restore.json"
       exit 0
     fi
     say "attempt $n: $DEV_IP does not answer yet"
