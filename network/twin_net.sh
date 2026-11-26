@@ -75,7 +75,10 @@ setup() {
   local vid; vid=$(vlan)
   say "firmware LAN VLAN: $vid"
   ovs-vsctl --may-exist add-br "$BR"
-  ovs-vsctl set bridge "$BR" protocols=OpenFlow13 fail_mode=standalone
+  # secure, not standalone: in standalone OVS deletes all flows ~12 s after losing Ryu and falls back
+  # to normal switching, silently ending any quarantine (E11, 2026-11-26). secure keeps the installed
+  # flows (quarantine + Ryu's priority-0 NORMAL rule) while Ryu is down; with no Ryu at all, nothing flows.
+  ovs-vsctl set bridge "$BR" protocols=OpenFlow13 fail_mode=secure
   ovs-vsctl set-controller "$BR" "$CTRL"
   # twin-host takes over 192.168.0.2 from tapN_0.<vid>
   ovs-vsctl --may-exist add-port "$BR" twin-host -- set interface twin-host type=internal
@@ -210,7 +213,7 @@ up() {   # everything, in background tmux sessions: bridge, Ryu, twin, watchdog
   local i; for i in $(seq 1 20); do
     [ "$(ovs-vsctl get controller "$BR" is_connected 2>/dev/null)" = true ] && break; sleep 1; done
   [ "$(ovs-vsctl get controller "$BR" is_connected 2>/dev/null)" = true ] && say "Ryu connected" \
-    || say "WARNING: Ryu not connected after 20 s - see $STATE/ryu.log (traffic still flows: fail_mode standalone)"
+    || say "WARNING: Ryu not connected after 20 s - see $STATE/ryu.log (fail_mode secure: NO traffic flows until Ryu connects)"
   if qemu_up && [ "$(ovs-vsctl port-to-br "$TAP" 2>/dev/null)" = "$BR" ] && ping -c 2 -W 2 "$DEV_IP" >/dev/null 2>&1; then
     say "twin already up on $BR - not restarting it"
   else

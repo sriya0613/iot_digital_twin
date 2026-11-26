@@ -40,12 +40,12 @@ Trust boundary: the bridge. Everything attached to `br-twin` except `twin-host` 
 | # | Property | Mechanism | Evidence | Status |
 |---|---|---|---|---|
 | P1 | While quarantined, only the twin host reaches the device | MAC drops (prio 200); MAC+IP allow pinned to `twin-host` port (300); ARP limited (250/300) | `tests/test_containment.py`; live 2026-11-26: host 3/3, atk 0/3 | Holds (non-spoofed) |
-| P2 | An attacker cannot pose as the host or the device to pass the quarantine | Anti-spoof drops: host MAC only from `twin-host`, device MAC only from the tap (prio 400) | Unit tests (spoofed MAC/IP/ARP dropped) | Live test pending (E13) |
+| P2 | An attacker cannot pose as the host or the device to pass the quarantine | Anti-spoof drops: host MAC only from `twin-host`, device MAC only from the tap (prio 400) | Unit tests; live E13 2026-11-26: spoofed host IP, host MAC+IP, device MAC, ARP each 0/25 delivered (controls 50/25, 5/25) | Holds |
 | P3 | Installed rules are the intended rules | Read-back compares priority, match, actions per rule | Unit tests (wrong/missing rule → not verified); live verified=True | Holds |
-| P4 | The attacker cannot change the response through the control plane | Ryu REST and dashboard bound to 127.0.0.1 | Live 2026-11-26: atk → 8080 and 8501 refused | Holds |
+| P4 | The attacker cannot change the response through the control plane | Ryu REST and dashboard bound to 127.0.0.1 | Live 2026-11-26: atk → 8080 and 8501 refused; E13 C6 0/10 | Holds |
 | P5 | A heal returns the device to the clean baseline | Restore from baseline + independent verifier | Phase 3 T1 (3/3) | Partial — verifier hashes the baseline, not the live disk (IMP-05); release before verify (IMP-06) |
 | P6 | A failed heal leaves the device contained | Verify before release | — | Not yet (IMP-06/08, Member 2) |
-| P7 | Containment survives controller loss | OVS keeps installed flows; `fail_mode=standalone` | — | To measure (E11) |
+| P7 | Containment survives controller loss | `fail_mode=secure`: OVS keeps installed flows while Ryu is down | E11 with `standalone` (2026-11-26): rules deleted and attacker through after 11–13 s in 5/5 trials, not restored on reconnect; isolate during outage fails (ok=False) | **Failed with standalone**; `secure` fix to be re-measured |
 
 ## Not claimed (out of scope)
 
@@ -60,4 +60,4 @@ Trust boundary: the bridge. Everything attached to `br-twin` except `twin-host` 
 
 ## Open items that change this document
 
-IMP-05, IMP-06, IMP-08 (Member 2) for P5–P6; E11 for P7; E13 for P2.
+IMP-05, IMP-06, IMP-08 (Member 2) for P5–P6; E11 re-run with `fail_mode=secure` for P7. A failed isolate (Ryu down) must keep the device marked uncontained and retry (Member 2, healing engine).
