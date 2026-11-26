@@ -79,6 +79,8 @@ def main():
                          "verify_heal.py's independent checks (baseline hash, boot, service, network, client)")
     ap.add_argument("--accept-http", help="with --verify full: accepted HTTP codes, e.g. 200,302 (default any)")
     ap.add_argument("--client-cmd", help="with --verify full: command that must succeed after a heal")
+    ap.add_argument("--service-timeout", type=float,
+                    help="with --verify full: seconds to wait for the web UI (default: verify_heal.py's own, 90)")
     a = ap.parse_args()
 
     if a.follow:
@@ -93,8 +95,9 @@ def main():
     verifier = None
     if a.verify == "full":
         from verify_heal import HealVerifier
+        extra = {"service_timeout": a.service_timeout} if a.service_timeout else {}
         verifier = HealVerifier(cont, accept_http=[int(x) for x in a.accept_http.split(",")] if a.accept_http else None,
-                                client_cmd=a.client_cmd)
+                                client_cmd=a.client_cmd, **extra)
     eng = HealingEngine(db, shlex.split(a.restore_cmd, posix=(os.name != "nt")) if a.restore_cmd else None,
                         containment=cont, verifier=verifier)
     counts = Counter()
