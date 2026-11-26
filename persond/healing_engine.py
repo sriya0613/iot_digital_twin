@@ -9,11 +9,18 @@ The same steps for every alert (see Self-Healing_Approach_Graded_Verified_Rollba
   2. No double-heal  while a reset runs, or until GRACE (30 s) after it, the device's alerts are ignored.
                    If the detector is already resetting the device itself, we do not reset it again.
   3. Reset         isolate (containment.py: Ryu drop rule + rule verification) -> run the restore
-                   command and wait -> release
+                   command and wait -> independent checks that work while isolated (verify_heal.py:
+                   baseline, boot, service) -> release ONLY if they pass -> checks that need the
+                   release (network, client); if those fail the device is isolated again and held.
+                   A failed check keeps the device isolated and held for a human (IMP-06/08).
+                   An isolate that fails (e.g. Ryu down) is retried on every record that arrives
+                   until it succeeds, and a human is notified (E11).
   4. Verify        the next VERIFY_WINDOWS (3) alerts after the grace period must all score <= 70
                    -> heal 'verified'. A high score in that time -> 'reinfected'.
                    No verdict within 2 min after the grace period -> 'unverified'.
-  5. Escalate      'hold'   : 3 heals within 10 min (counted from the last human clear), or a failed reset
+                   'reinfected' -> isolate again and hold for a human (IMP-08).
+  5. Escalate      'hold'   : 3 heals within 10 min (counted from the last human clear; heals by the
+                              watchdog count too, IMP-09), a failed reset, failed checks, or reinfection
                               -> stop auto-reset, keep the device isolated, hold it for a human.
                    'notify' : stuck in the rate-limit band for 2 min, or a containment rule that could
                               not be verified -> tell a human, keep going (and policy becomes strict).
@@ -53,11 +60,12 @@ ESCALATE_WINDOW = 600       # ... within 10 minutes -> hold for a human
 RATE_LIMIT_ESCALATE = 120   # rate-limited this long without going back to normal -> notify a human
 STRICT_FOR = 3600           # after an escalation, the policy is strict for this device for 1 hour
 WAIT_FOR_DETECTOR = 600     # detector is resetting: ignore until its heal record arrives (max 10 min)
+ISOLATE_TRIES = 3           # an isolate is tried this many times (1 s apart) before it is left to the retry loop
 
 
 class HealingEngine:
     def __init__(self, db, restore_cmd=None, containment=None, grace=GRACE_SECONDS, max_heals=MAX_HEALS,
-                 escalate_window=ESCALATE_WINDOW, verify_windows=VERIFY_WINDOWS, verifier=None):
+                 escalate_window=ESCALATE_WINDOW, verify_windows=VERIFY_WINDOWS, verifier=None, sleep=time.sleep):
         self.db = db
         self.verifier = verifier  # optional verify_heal.HealVerifier; None = window-based verification only (default)
         self.restore_cmd = restore_cmd or FAKE_RESTORE
@@ -72,6 +80,8 @@ class HealingEngine:
         self.rate_notified = set()
         self.isolated = set()     # devices we currently hold isolated
         self.escalated = []       # (device, reason) - this run only; the database keeps all of them
+        self.pending_isolate = set()   # devices whose isolate failed: retried on every record (E11: Ryu down)
+        self.sleep = sleep
 
     # ---- containment (diagram: SDN Controller -> Traffic Containment -> Rule Verification) ----
     def _contain(self, what, dev, at):
@@ -80,6 +90,36 @@ class HealingEngine:
         if self.net.mode == "ryu" and not (res["ok"] and res["verified"]):
             self.notify(dev, "%s rule not confirmed on the switch (%s)" % (what, res["detail"]), at)
         return res
+
+    def _isolate(self, dev, at):
+        """Isolate, trying ISOLATE_TRIES times. If it still fails, remember the device and retry it on
+        every later record until it succeeds (a failed isolate must never be forgotten)."""
+        for i in range(ISOLATE_TRIES):
+            res = getattr(self.net, "isolate")(dev)
+            ok = res["ok"] and (res["verified"] or self.net.mode != "ryu")
+            self.db.record_containment(dev, "isolate", self.net.mode, res["ok"], res["verified"], res["seconds"], at,
+                                       res["detail"])
+            if ok:
+                if dev in self.pending_isolate:
+                    print("    -> isolate of %s succeeded on retry" % dev)
+                self.pending_isolate.discard(dev)
+                self.isolated.add(dev)
+                return True
+            if i + 1 < ISOLATE_TRIES:
+                self.sleep(1)
+        if dev not in self.pending_isolate:
+            self.notify(dev, "isolate failed %d times (%s); retrying on every new record" % (ISOLATE_TRIES, res["detail"]), at)
+        self.pending_isolate.add(dev)
+        return False
+
+    def _retry_isolations(self, at):
+        for dev in sorted(self.pending_isolate):          # removed from the set only by a successful isolate or a release
+            self._isolate(dev, at)
+
+    def _release(self, dev, at):
+        self.pending_isolate.discard(dev)
+        self._contain("release", dev, at)
+        self.isolated.discard(dev)
 
     # ---- escalation ------------------------------------------------------------------------
     def hold(self, dev, reason, at):
@@ -101,6 +141,11 @@ class HealingEngine:
         since = max(now - self.escalate_window, self.db.cleared_at(dev) + 0.001)   # a clear starts a fresh count
         n = self.db.heals_between(dev, since, now)
         return n >= self.max_heals, n
+
+    @staticmethod
+    def _print_checks(when, r):
+        print("    -> independent checks %s: %s%s" % (when, "all passed" if r["ok"] else "FAILED " + ", ".join(r["failed"]),
+                                                    " (not checked: %s)" % ", ".join(r["skipped"]) if r["skipped"] else ""))
 
     # ---- verification ----------------------------------------------------------------------
     def start_verify(self, dev, heal_id, healed_at, checks_ok=True, failed=()):
@@ -143,9 +188,24 @@ class HealingEngine:
     def handle(self, a):
         """Process one record from the feed. Returns what was done (a short string)."""
         dev = a.get("device_ip") or "device"
+        if self.pending_isolate:
+            self._retry_isolations(a.get("window_end_epoch") or a.get("emitted_at_epoch") or time.time())
 
         if a["type"] == "health":                        # Person A's watchdog
             self.db.record_health(a)
+            if a.get("event") in ("heal_ok", "heal_failed"):      # the watchdog restored the twin (IMP-09)
+                done = a["emitted_at_epoch"]
+                ok = a["event"] == "heal_ok"
+                self.db.record_heal({"device_ip": dev, "ok": ok, "exit_code": a.get("exit_code"),
+                                     "restore_seconds": a.get("heal_seconds") or 0, "window_end_epoch": None,
+                                     "emitted_at_epoch": done}, source="watchdog")
+                self.ignore[dev] = (done - (a.get("heal_seconds") or 0), done + self.grace)
+                over, n = self.too_many_heals(dev, done)
+                if over and not self.db.held_reason(dev):
+                    self._isolate(dev, done)
+                    self.hold(dev, "%d heals within %d min (incl. watchdog)" % (n, self.escalate_window // 60), done)
+                    return "watchdog_heal_held"
+                return "watchdog_heal"
             return "health"
 
         if a["type"] == "heal":                          # the detector reset the device itself
@@ -169,10 +229,9 @@ class HealingEngine:
             if a["risk_score"] > QUARANTINE_ABOVE:
                 print("[risk %3d] %s is held for a human (%s) - not resetting" % (a["risk_score"], dev, held))
             return "held"
-        if dev in self.isolated:                          # a human cleared it since: lift the isolation
+        if dev in self.isolated or dev in self.pending_isolate:   # a human cleared it since: lift the isolation
             print("[clear] %s was cleared by a human" % dev)
-            self._contain("release", dev, now)
-            self.isolated.discard(dev)
+            self._release(dev, now)
 
         # no double-heal
         start, until = self.ignore.get(dev, (0, 0))
@@ -181,8 +240,17 @@ class HealingEngine:
             print("[risk %3d] ignored - %s is restoring / in grace period" % (a["risk_score"], dev))
             return "ignored"
 
-        # verify the last heal
-        self.check_verify(dev, a)
+        # verify the last heal; reinfection -> isolate again and hold for a human (IMP-08)
+        if self.check_verify(dev, a):
+            self.db.record_action(a, QUARANTINE, "reinfected after heal")
+            self._isolate(dev, now)
+            self.hold(dev, "reinfected after heal (risk %d)" % a["risk_score"], now)
+            return "reinfected_held"
+        v = self.verifying.get(dev)
+        if v and v.get("hi", 0) > 0:                       # one high window while verifying: wait for the
+            self.db.record_action(a, "watch", "high window while verifying a heal; reinfection rule decides")  # streak
+            print("[risk %3d] %s high while verifying its heal - waiting for the next window" % (a["risk_score"], dev))
+            return "verifying_high"
 
         # decide (strict if the device was escalated in the last hour)
         action, reason = decide(a, strict=self.strict(dev, now))
@@ -217,8 +285,7 @@ class HealingEngine:
             return "left_to_detector"
 
         self.db.record_action(a, QUARANTINE, reason)
-        self._contain("isolate", dev, now)
-        self.isolated.add(dev)
+        self._isolate(dev, now)
 
         # reset
         print("    -> running restore: %s" % " ".join(self.restore_cmd))
@@ -244,17 +311,26 @@ class HealingEngine:
         if over:
             self.hold(dev, "%d heals within %d min" % (n, self.escalate_window // 60), done)
             return "restored_then_held"
-        self._contain("release", dev, done)
-        self.isolated.discard(dev)
         checks_ok, failed = True, []
         if self.verifier is not None and heal_id is not None:
-            r = self.verifier.verify(dev)                     # read-only checks; blocks like the restore does
+            # checks that work while isolated: release only if they pass (IMP-06)
+            r = self.verifier.verify(dev, factors=self.verifier.WHILE_ISOLATED)
             self.db.record_heal_checks(heal_id, r)
-            checks_ok, failed = r["ok"], r["failed"]
-            print("    -> independent checks: %s%s" % ("all passed" if checks_ok else "FAILED " + ", ".join(failed),
-                                                    " (not checked: %s)" % ", ".join(r["skipped"]) if r["skipped"] else ""))
-            if not checks_ok:
-                self.notify(dev, "heal checks failed: %s" % ", ".join(failed), done)
+            self._print_checks("before release", r)
+            if not r["ok"]:
+                self.db.set_verify(heal_id, "failed")
+                self.hold(dev, "heal checks failed before release: %s" % ", ".join(r["failed"]), done)
+                return "restored_checks_failed"
+        self._release(dev, done)
+        if self.verifier is not None and heal_id is not None:
+            r = self.verifier.verify(dev, factors=self.verifier.AFTER_RELEASE)
+            self.db.record_heal_checks(heal_id, r)
+            self._print_checks("after release", r)
+            if not r["ok"]:
+                self.db.set_verify(heal_id, "failed")
+                self._isolate(dev, done)
+                self.hold(dev, "heal checks failed after release: %s" % ", ".join(r["failed"]), done)
+                return "restored_checks_failed"
         self.start_verify(dev, heal_id, done, checks_ok, failed)
         return "restored"
 

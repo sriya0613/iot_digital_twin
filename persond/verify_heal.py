@@ -158,11 +158,19 @@ class HealVerifier:
             return ok, ("ok: " if ok else "failed: ") + self.client_cmd
         return self._timed("client", fn)
 
-    def verify(self, ip):
-        """Run all checks. Returns {"ok": bool, "failed": [...], "skipped": [...], "checks": [...]}.
-        ok is True only if no check FAILED; unchecked factors (None) are listed, not counted as passes."""
-        checks = [self.check_baseline(), self.check_boot(ip), self.check_service(ip), self.check_network(),
-                  self.check_client()]
+    # Checks that work while the device is still isolated (only the twin host can reach it), and the
+    # ones that need the isolation lifted (our rules gone, a normal client reaches the device).
+    WHILE_ISOLATED = ("baseline", "boot", "service")
+    AFTER_RELEASE = ("network", "client")
+
+    def verify(self, ip, factors=None):
+        """Run the checks (all, or only those named in factors). Returns {"ok": bool, "failed": [...],
+        "skipped": [...], "checks": [...]}. ok is True only if no check FAILED; unchecked factors (None)
+        are listed, not counted as passes."""
+        run = {"baseline": self.check_baseline, "boot": lambda: self.check_boot(ip),
+               "service": lambda: self.check_service(ip), "network": self.check_network, "client": self.check_client}
+        names = factors or ("baseline", "boot", "service", "network", "client")
+        checks = [run[n]() for n in names]
         failed = [c["factor"] for c in checks if c["ok"] is False]
         skipped = [c["factor"] for c in checks if c["ok"] is None]
         return {"ok": not failed, "failed": failed, "skipped": skipped, "checks": checks}
