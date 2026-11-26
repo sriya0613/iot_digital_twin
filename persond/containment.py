@@ -10,10 +10,10 @@ Two modes:
 What it does in ryu mode
   isolate(ip)     drop rules for the device's MAC in both directions (priority 200), plus narrow allow
                   rules (priority 300) between the device and the twin host 192.168.0.2, so restore.sh /
-                  twin_net.sh heal can still check that the device answers. The allow rules match MAC
-                  and IP on both ends, and the host side also its switch port (twin-host, which is never
-                  recreated). Anti-spoof drops (priority 400) stop any other port from sending with the
-                  host's or the device's MAC, so a quarantined neighbour cannot pose as either (IMP-01).
+                  twin_net.sh heal can still check that the device answers. The allow rules match the
+                  device's MAC and IP, and the host by its switch port (twin-host, never recreated; its MAC
+                  changes on every restore). Anti-spoof drops (priority 400) stop any port other than the
+                  twin's tap from sending with the device's MAC, so a neighbour cannot pose as either (IMP-01).
   release(ip)     delete those rules (by cookie)
   rate_limit(ip)  an OpenFlow meter (default 1000 kbit/s) on the device's traffic (priority 150)
   unlimit(ip)     delete the meter rule
@@ -175,31 +175,33 @@ class Containment:
         ports = self._ports()
         if HOST_PORT_NAME not in ports:
             raise RuntimeError("no %s port on the switch" % HOST_PORT_NAME)
-        host_port, host_mac = ports[HOST_PORT_NAME]
+        host_port = ports[HOST_PORT_NAME][0]
         rules = [(200, m, []) for m in self._match_sets(ip)]                     # [] actions = drop
         if not dev_mac:              # unknown MAC: IP drops only, no allow rules we cannot pin down
             return rules
-        # narrow allow rules, so restore checks from the twin host keep working
+        # Narrow allow rules, so restore checks from the twin host keep working. The host is identified by
+        # its switch port (twin-host, never recreated), NOT by its MAC: twin_net.sh gives twin-host a new MAC
+        # on every restore (copied from FirmAE's fresh tap1_0.1), and a MAC-pinned rule cut the host off
+        # from a twin restored while quarantined (engine loop check, 2026-11-26).
         rules += [
-            (300, {"in_port": host_port, "eth_src": host_mac, "eth_dst": dev_mac,
+            (300, {"in_port": host_port, "eth_dst": dev_mac,
                    "eth_type": 0x0800, "ipv4_src": TWIN_HOST_IP, "ipv4_dst": ip}, normal),
-            (300, {"eth_src": dev_mac, "eth_dst": host_mac,
+            (300, {"eth_src": dev_mac,
                    "eth_type": 0x0800, "ipv4_src": ip, "ipv4_dst": TWIN_HOST_IP}, normal),
-            (300, {"in_port": host_port, "eth_src": host_mac, "eth_type": 0x0806,
+            (300, {"in_port": host_port, "eth_type": 0x0806,
                    "arp_spa": TWIN_HOST_IP, "arp_tpa": ip}, normal),
             (300, {"eth_src": dev_mac, "eth_type": 0x0806, "arp_spa": ip, "arp_tpa": TWIN_HOST_IP}, normal),
             # any other ARP about the device (e.g. a broadcast who-has from the attacker) is dropped
             (250, {"eth_type": 0x0806, "arp_tpa": ip}, []),
             (250, {"eth_type": 0x0806, "arp_spa": ip}, []),
         ]
-        # anti-spoof: only twin-host may send with the host MAC, only the twin's tap with the device MAC
+        # anti-spoof: only the twin's tap may send with the device MAC (the tap's port number changes on
+        # every restore, so every OTHER port gets the drop). Posing as the host needs the twin-host port,
+        # which the allow rules above already require.
         for name, (port_no, _mac) in sorted(ports.items(), key=lambda kv: str(kv[0])):
-            if port_no in ("LOCAL", 0xFFFFFFFE) or name == HOST_PORT_NAME:
+            if port_no in ("LOCAL", 0xFFFFFFFE) or str(name).startswith(TWIN_PORT_PREFIX):
                 continue
-            rules.append((400, {"in_port": port_no, "eth_src": host_mac}, []))
-            if not str(name).startswith(TWIN_PORT_PREFIX):
-                rules.append((400, {"in_port": port_no, "eth_src": dev_mac}, []))
-        rules.append((400, {"in_port": host_port, "eth_src": dev_mac}, []))
+            rules.append((400, {"in_port": port_no, "eth_src": dev_mac}, []))
         return rules
 
     def isolate(self, ip):

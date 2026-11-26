@@ -180,3 +180,18 @@ def test_only_our_cookie():
     c, sw = make()
     c.isolate(DEV_IP)
     assert {f["cookie"] for f in sw.flows} == {COOKIE_ISOLATE}
+
+
+def test_restore_during_quarantine_keeps_host_access():
+    """twin_net.sh heal gives twin-host a new MAC and the twin a new tap port; the host must still reach the
+    device (the restore waits for its ping), and the attacker must still be cut off (engine loop check)."""
+    c, sw = make()
+    c.isolate(DEV_IP)
+    new_host_mac, new_tap = "aa:bb:cc:99:99:99", 6
+    assert sw.forwards(ip(PORT["host"], new_host_mac, DEV_MAC, HOST_IP, DEV_IP))
+    assert sw.forwards(ip(new_tap, DEV_MAC, new_host_mac, DEV_IP, HOST_IP))
+    assert sw.forwards(arp(PORT["host"], new_host_mac, HOST_IP, DEV_IP))
+    assert sw.forwards(arp(new_tap, DEV_MAC, DEV_IP, HOST_IP))
+    assert not sw.forwards(ip(PORT["atk"], new_host_mac, DEV_MAC, HOST_IP, DEV_IP))   # spoofing the new MAC
+    assert not sw.forwards(ip(PORT["atk"], ATK_MAC, DEV_MAC, "192.168.0.10", DEV_IP))
+    assert not sw.forwards(ip(new_tap, DEV_MAC, ATK_MAC, DEV_IP, "192.168.0.10"))
