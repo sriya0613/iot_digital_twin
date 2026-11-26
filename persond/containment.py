@@ -5,7 +5,7 @@ Traffic Containment -> Rule Verification).
 Two modes:
   print  (default, laptop)  only prints what it would do; always "succeeds"
   ryu    (twin host)        talks to Ryu's REST API (ryu.app.ofctl_rest, http://127.0.0.1:8080),
-                            which Person A runs:  ryu-manager ryu.app.ofctl_rest network/ryu_base.py
+                            started by: sudo bash network/twin_net.sh up  (REST bound to 127.0.0.1 only)
 
 What it does in ryu mode
   isolate(ip)     drop rules for the device's MAC in both directions (priority 200), plus narrow allow
@@ -18,17 +18,21 @@ What it does in ryu mode
   rate_limit(ip)  an OpenFlow meter (default 1000 kbit/s) on the device's traffic (priority 150)
   unlimit(ip)     delete the meter rule
   After every add, the rules are READ BACK from the switch (GET /stats/flow/<dpid>) and each expected
-  rule is checked field by field (priority, match, actions), not just counted (IMP-04). The result (ok, verified, seconds) is returned and saved in threat.db.
+  rule is checked field by field (priority, match, actions), not just counted (IMP-04).
+  The result (ok, verified, seconds) is returned and saved in threat.db.
 
 Rules match the device's MAC address, not a switch port, because twin_net.sh heal recreates the
 twin's tap interface on every heal (a port-based rule would be lost).
 
-The anti-spoof and field-by-field verification (IMP-01, IMP-04) are unit-tested against a fake
-switch (tests/test_containment.py) but NOT YET ON THE TWIN. Check with Person A's network/containment_test.sh before relying on it:
-  - field names of the match (eth_src / eth_dst / ipv4_src ...) on her Ryu 4.34
-  - whether her OVS supports meters (rate-limit); if not, rate_limit() reports ok=False
-  - the switch datapath id (from `bash network/twin_net.sh status --json`); if not given, the first
-    switch Ryu knows is used
+Tested on the twin (2026-11-26, Ryu 4.34, OVS br-twin, OpenFlow 1.3):
+  - isolate 0.037-0.061 s, verified=True; release verified=True, no rules of ours left
+  - host 192.168.0.2 reaches the device during quarantine (3/3 pings); attacker ns atk does not (0/3)
+  - Ryu reports match fields under OpenFlow 1.0 names (dl_src, nw_src, dl_type); _norm_match maps them
+  - Ryu's REST API is bound to 127.0.0.1 (twin_net.sh up), so the attacker cannot delete these rules
+Not yet tested live: spoofing attempts (experiment E13), and rate_limit() with the new read-back
+(the meter itself cut delivered SYNs by about 47% in the Phase 3 T3 test).
+The datapath id comes from `bash network/twin_net.sh status --json`; if not given, the first switch
+Ryu knows is used.
 
   python persond/containment.py --mode ryu isolate 192.168.0.1     # try it by hand on the twin host
   python persond/containment.py --mode ryu release 192.168.0.1
