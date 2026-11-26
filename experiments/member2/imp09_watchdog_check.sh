@@ -44,8 +44,8 @@ for n in 1 2 3; do
   sleep 6
   log "  watchdog heals seen: $(heals_seen) | engine: heals stored $(q "select count(*) from heals where source='watchdog'"), held: $(q "select count(*) from device_state where status='held'") | rules $(rules)"
   # The watchdog escalates (stops healing) after 2 heals that do not keep the twin up for --stable (60 s),
-  # so the twin must stay up longer than that before the next stop (first run 2026-11-26 escalated at 35 s).
-  [ "$n" -lt 3 ] && sleep 75
+  # counted after its 30 s grace, so the twin must stay up >90 s before the next stop (first run escalated at 35 s).
+  [ "$n" -lt 3 ] && sleep 100          # 30 s watchdog grace + 60 s stable + margin
 done
 sleep 5
 HEALS=$(q "select count(*) from heals where source='watchdog'"); HELD=$(q "select coalesce(max(reason),'no') from device_state where status='held'")
