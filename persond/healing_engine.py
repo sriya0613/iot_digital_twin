@@ -27,6 +27,10 @@ The same steps for every alert (see Self-Healing_Approach_Graded_Verified_Rollba
                    Clear a held device with:  python persond/healing_engine.py --clear 192.168.0.1
                    (or the Clear button on the dashboard)
   6. Record        every alert, action, heal, escalation, containment step and indicator -> threat.db
+  Restores block the engine by default. With background=True (run_pipeline --background-restore) the
+  restore and the checks done while isolated run in a worker thread: alerts keep being read and decided
+  (other devices are handled; the restoring device's alerts are ignored) and the result is applied on the
+  next record (IMP-10). Database and containment are only touched by the main thread.
   7. Restart-safe  a restore in progress is recorded; an engine that starts finds it, holds the device
                    and keeps it isolated. Held devices are isolated again on start. Stopping the engine
                    never lifts a quarantine (IMP-11).
@@ -41,6 +45,7 @@ Times are on the ALERT clock (window times in the feed), so replays at full spee
 import os
 import subprocess
 import sys
+import threading
 import time
 from collections import Counter
 
@@ -68,7 +73,8 @@ ISOLATE_TRIES = 3           # an isolate is tried this many times (1 s apart) be
 
 class HealingEngine:
     def __init__(self, db, restore_cmd=None, containment=None, grace=GRACE_SECONDS, max_heals=MAX_HEALS,
-                 escalate_window=ESCALATE_WINDOW, verify_windows=VERIFY_WINDOWS, verifier=None, sleep=time.sleep):
+                 escalate_window=ESCALATE_WINDOW, verify_windows=VERIFY_WINDOWS, verifier=None, sleep=time.sleep,
+                 background=False):
         self.db = db
         self.verifier = verifier  # optional verify_heal.HealVerifier; None = window-based verification only (default)
         self.restore_cmd = restore_cmd or FAKE_RESTORE
@@ -85,6 +91,8 @@ class HealingEngine:
         self.escalated = []       # (device, reason) - this run only; the database keeps all of them
         self.pending_isolate = set()   # devices whose isolate failed: retried on every record (E11: Ryu down)
         self.sleep = sleep
+        self.background = background   # IMP-10: restore in a worker thread, keep reading alerts meanwhile
+        self.jobs = {}                 # device -> running background restore
         self.recover(time.time())
 
     def recover(self, now):
@@ -205,6 +213,8 @@ class HealingEngine:
     def handle(self, a):
         """Process one record from the feed. Returns what was done (a short string)."""
         dev = a.get("device_ip") or "device"
+        if self.jobs:
+            self.collect()                                 # finish background restores that are done
         if self.pending_isolate:
             self._retry_isolations(a.get("window_end_epoch") or a.get("emitted_at_epoch") or time.time())
 
@@ -305,20 +315,57 @@ class HealingEngine:
         self._isolate(dev, now)
         self.db.set_stage(dev, "restoring", time.time(), "trigger risk %d" % a["risk_score"])
 
-        # reset
-        print("    -> running restore: %s" % " ".join(self.restore_cmd))
+        return self._start_restore(dev, now, a["risk_score"])
+
+    # ---- restore: in the foreground (default) or in a background worker (IMP-10) --------------
+    def _run_restore(self, dev):
+        """The slow part: restore command, then (if it worked) the checks that run while isolated.
+        Touches no database and no containment, so it may run in a worker thread."""
         t0 = time.time()
         try:
-            exit_code = subprocess.call(self.restore_cmd)     # blocks: only one restore at a time
+            exit_code = subprocess.call(self.restore_cmd)
         except OSError as e:                                  # restore command missing
             exit_code = "not run: %s" % e
         secs = round(time.time() - t0, 2)
+        pre = None
+        if exit_code == 0 and self.verifier is not None:
+            pre = self.verifier.verify(dev, factors=self.verifier.WHILE_ISOLATED)
+        return exit_code, secs, pre
+
+    def _start_restore(self, dev, now, risk):
+        print("    -> running restore%s: %s" % (" in the background" if self.background else "", " ".join(self.restore_cmd)))
+        if not self.background:
+            return self._finish_restore(dev, now, risk, *self._run_restore(dev))
+        job = {"now": now, "risk": risk, "result": None}
+        def work():
+            job["result"] = self._run_restore(dev)
+        job["thread"] = threading.Thread(target=work, name="restore-%s" % dev, daemon=True)
+        self.jobs[dev] = job
+        self.ignore[dev] = (now, float("inf"))                # its alerts are ignored until it is finished
+        job["thread"].start()
+        return "restoring"
+
+    def collect(self, wait=False):
+        """Finish background restores that are done (all of them if wait). Returns their outcomes."""
+        out = []
+        for dev in sorted(self.jobs):
+            job = self.jobs[dev]
+            if wait:
+                job["thread"].join()
+            if job["thread"].is_alive():
+                continue
+            del self.jobs[dev]
+            out.append(self._finish_restore(dev, job["now"], job["risk"], *job["result"]))
+        return out
+
+    def _finish_restore(self, dev, now, risk, exit_code, secs, pre):
+        """Everything after the restore command: record, hold or release, checks. Main thread only."""
         self.db.clear_stage(dev)                               # the restore finished (well or badly)
         ok = exit_code == 0
         done = now + secs
         heal_id = self.db.record_heal({"device_ip": dev, "ok": ok, "exit_code": exit_code, "restore_seconds": secs,
                                        "window_end_epoch": now, "emitted_at_epoch": done},
-                                      source="healing_engine", trigger_risk=a["risk_score"])
+                                      source="healing_engine", trigger_risk=risk)
         self.ignore[dev] = (now, done + self.grace)
         if not ok:
             print("    -> restore FAILED (exit %s) after %.1f s" % (exit_code, secs))
@@ -331,14 +378,13 @@ class HealingEngine:
             self.hold(dev, "%d heals within %d min" % (n, self.escalate_window // 60), done)
             return "restored_then_held"
         checks_ok, failed = True, []
-        if self.verifier is not None and heal_id is not None:
+        if pre is not None and heal_id is not None:
             # checks that work while isolated: release only if they pass (IMP-06)
-            r = self.verifier.verify(dev, factors=self.verifier.WHILE_ISOLATED)
-            self.db.record_heal_checks(heal_id, r)
-            self._print_checks("before release", r)
-            if not r["ok"]:
+            self.db.record_heal_checks(heal_id, pre)
+            self._print_checks("before release", pre)
+            if not pre["ok"]:
                 self.db.set_verify(heal_id, "failed")
-                self.hold(dev, "heal checks failed before release: %s" % ", ".join(r["failed"]), done)
+                self.hold(dev, "heal checks failed before release: %s" % ", ".join(pre["failed"]), done)
                 return "restored_checks_failed"
         self._release(dev, done)
         if self.verifier is not None and heal_id is not None:

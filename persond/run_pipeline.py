@@ -79,6 +79,8 @@ def main():
                          "verify_heal.py's independent checks (baseline hash, boot, service, network, client)")
     ap.add_argument("--accept-http", help="with --verify full: accepted HTTP codes, e.g. 200,302 (default any)")
     ap.add_argument("--client-cmd", help="with --verify full: command that must succeed after a heal")
+    ap.add_argument("--background-restore", action="store_true",
+                    help="run restores in a worker thread and keep reading alerts meanwhile (IMP-10)")
     ap.add_argument("--service-timeout", type=float,
                     help="with --verify full: seconds to wait for the web UI (default: verify_heal.py's own, 90)")
     a = ap.parse_args()
@@ -99,7 +101,7 @@ def main():
         verifier = HealVerifier(cont, accept_http=[int(x) for x in a.accept_http.split(",")] if a.accept_http else None,
                                 client_cmd=a.client_cmd, **extra)
     eng = HealingEngine(db, shlex.split(a.restore_cmd, posix=(os.name != "nt")) if a.restore_cmd else None,
-                        containment=cont, verifier=verifier)
+                        containment=cont, verifier=verifier, background=a.background_restore)
     counts = Counter()
     try:
         for name, lines in sources:
@@ -107,6 +109,8 @@ def main():
             for alert in read_alerts(lines, on_bad=lambda n, why: print("SKIPPED line %d: %s" % (n, why), file=sys.stderr)):
                 counts[eng.handle(alert)] += 1
                 sys.stdout.flush()
+        for outcome in eng.collect(wait=True):            # end of input: finish background restores
+            counts[outcome] += 1
     except KeyboardInterrupt:
         print("\nstopped by Ctrl-C")
     finally:

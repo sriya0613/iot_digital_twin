@@ -379,3 +379,31 @@ def test_restore_failing_mid_copy_keeps_isolation_and_holds(tmp_path):   # IMP-1
     assert "restore failed" in db.held_reason("192.168.0.1")
     assert [eng.handle(win(t, 5)) for t in (1100, 1105)] == ["held", "held"]
     assert "release" not in net.calls
+
+
+# ------------------------------------------------------------------ IMP-10: restore in the background
+def test_background_restore_keeps_deciding(tmp_path):
+    import time as _t
+    script = tmp_path / "slow_restore.sh"
+    script.write_text("#!/bin/sh\nsleep 1.5\nexit 0\n")
+    net = RecNet()
+    eng, db = engine(tmp_path, "bg", net)
+    eng.background, eng.restore_cmd = True, ["sh", str(script)]
+    t0 = _t.time()
+    assert eng.handle(win(1000, 95)) == "restoring"             # returns at once, restore runs on
+    other = dict(win(1001, 50), device_ip="192.168.0.9", alert_id="other-1001")
+    assert eng.handle(other) == "rate_limit"                     # another device is decided meanwhile
+    assert eng.handle(win(1005, 95)) == "ignored"                # the restoring device's alerts wait
+    assert _t.time() - t0 < 1.0                                  # nothing above waited for the restore
+    assert eng.collect(wait=True) == ["restored"]
+    assert net.calls[:2] == ["isolate", "rate_limit"] and "release" in net.calls
+    assert db.stages() == []
+
+
+def test_background_restore_failure_is_held(tmp_path):
+    net = RecNet()
+    eng, db = engine(tmp_path, "bgfail", net)
+    eng.background, eng.restore_cmd = True, ["false"]
+    assert eng.handle(win(1000, 95)) == "restoring"
+    assert eng.collect(wait=True) == ["restore_failed"]
+    assert "restore failed" in db.held_reason("192.168.0.1") and "release" not in net.calls
