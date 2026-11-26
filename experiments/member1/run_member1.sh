@@ -67,7 +67,7 @@ count_on() {   # count_on <iface> <filter> <cmd...>
   local ifc=$1 flt=$2; shift 2; local f; f=$(mktemp)
   tcpdump -i "$ifc" -nn -l "$flt" >"$f" 2>/dev/null & local p=$!; sleep 1
   "$@" >/dev/null 2>&1; sleep 1; kill $p 2>/dev/null; wait $p 2>/dev/null
-  wc -l <"$f"; rm -f "$f"
+  grep -c . "$f"; rm -f "$f"          # non-empty lines only: tcpdump writes a blank line when stopped
 }
 
 # ======================================================================================== E13
