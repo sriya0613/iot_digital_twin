@@ -2,7 +2,7 @@
 # experiments/member2/imp09_watchdog_check.sh — IMP-09: restores done by the WATCHDOG count toward the
 # "3 heals in 10 minutes -> hold for a human" rule.
 #
-#   sudo bash experiments/member2/imp09_watchdog_check.sh        (~11-13 min, 3 real restores, no attack)
+#   sudo bash experiments/member2/imp09_watchdog_check.sh        (~13-15 min, 3 real restores, no attack)
 #
 # A private watchdog (--no-http, so a slow web UI is not mistaken for a dead twin) writes its records to a
 # private feed that the engine (run_pipeline --follow, containment ryu) reads. The twin's emulator is
@@ -43,7 +43,9 @@ for n in 1 2 3; do
   for _ in $(seq 1 120); do [ "$(heals_seen)" -gt "$before" ] && break; sleep 5; done
   sleep 6
   log "  watchdog heals seen: $(heals_seen) | engine: heals stored $(q "select count(*) from heals where source='watchdog'"), held: $(q "select count(*) from device_state where status='held'") | rules $(rules)"
-  [ "$n" -lt 3 ] && sleep 35          # the watchdog's grace after a heal, then the next stop
+  # The watchdog escalates (stops healing) after 2 heals that do not keep the twin up for --stable (60 s),
+  # so the twin must stay up longer than that before the next stop (first run 2026-11-26 escalated at 35 s).
+  [ "$n" -lt 3 ] && sleep 75
 done
 sleep 5
 HEALS=$(q "select count(*) from heals where source='watchdog'"); HELD=$(q "select coalesce(max(reason),'no') from device_state where status='held'")
