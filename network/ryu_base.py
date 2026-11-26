@@ -4,7 +4,7 @@ Installs one rule when the switch connects: priority 0, NORMAL switching. So wit
 controller running everything still flows; Person D adds higher-priority rules
 (drop = quarantine, meter = rate-limit) through the REST API started alongside it:
 
-    ryu-manager ryu.app.ofctl_rest network/ryu_base.py      # REST on http://127.0.0.1:8080
+    ryu-manager --wsapi-host 127.0.0.1 ryu.app.ofctl_rest network/ryu_base.py   # REST on 127.0.0.1:8080 only (IMP-02)
 """
 from ryu.base import app_manager
 from ryu.controller import ofp_event

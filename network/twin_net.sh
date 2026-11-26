@@ -204,7 +204,7 @@ up() {   # everything, in background tmux sessions: bridge, Ryu, twin, watchdog
   if ! tmux has-session -t ryu 2>/dev/null; then
     local RYU="${RYU_MANAGER:-/home/${SUDO_USER:-vboxuser}/ryu-venv/bin/ryu-manager}"
     [ -x "$RYU" ] || die "ryu-manager not found at $RYU (set RYU_MANAGER=...)"
-    tmux new-session -d -s ryu "cd '$ROOT' && '$RYU' ryu.app.ofctl_rest network/ryu_base.py 2>&1 | tee '$STATE/ryu.log'"
+    tmux new-session -d -s ryu "cd '$ROOT' && '$RYU' --wsapi-host 127.0.0.1 ryu.app.ofctl_rest network/ryu_base.py 2>&1 | tee '$STATE/ryu.log'"
     say "Ryu started in tmux session 'ryu'"
   fi
   local i; for i in $(seq 1 20); do
