@@ -33,9 +33,10 @@ DEV_IP="${DEV_IP:-192.168.0.1}"
 HOST_IP="${HOST_IP:-192.168.0.2}"
 CTRL="${CTRL:-tcp:127.0.0.1:6653}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# restore_verified.sh = FirmAE's restore.sh + a hash of the disk between copy and boot (IMP-05)
-REAL_RESTORE="${REAL_RESTORE:-$HERE/restore_verified.sh}"
-[ -f "$REAL_RESTORE" ] || REAL_RESTORE="$FIRMAE_DIR/restore.sh"
+# Default: FirmAE's own restore.sh. network/restore_verified.sh (restore.sh + a disk hash between copy and
+# boot, IMP-05) is opt-in only: REAL_RESTORE=$HERE/restore_verified.sh. On 2026-11-26 it made FirmAE's
+# boot fail ("umount ... target is busy") on a teammate's VM while restore.sh booted every time.
+REAL_RESTORE="${REAL_RESTORE:-$FIRMAE_DIR/restore.sh}"
 ROOT="$(dirname "$HERE")"
 STATE="$HERE/.state"
 

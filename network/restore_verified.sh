@@ -9,7 +9,10 @@
 # After the boot the firmware writes to image.raw, so its hash changes even on a perfect heal; the only
 # point where "the twin runs from a clean disk" can be checked by hash is here, before the boot.
 #
-# Used by network/twin_net.sh heal when present (REAL_RESTORE overrides it). Exit 0 = twin answers again.
+# OPT-IN, NOT THE DEFAULT: sudo REAL_RESTORE=$PWD/network/restore_verified.sh bash network/twin_net.sh heal
+# On 2026-11-26 (Member 2's VM) FirmAE's boot failed after this script ("umount: .../scratch/1/image: target
+# is busy", no emulator) while ~/firmae/FirmAE/restore.sh booted every time; cause not yet understood.
+# Exit 0 = twin answers again.
 set -euo pipefail
 
 IID="${IID:-1}"
