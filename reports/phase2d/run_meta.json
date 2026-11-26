@@ -1,0 +1,5 @@
+{
+  "scaler": "min-max refitted on training runs of every split",
+  "n": 100,
+  "n_outer": 50
+}

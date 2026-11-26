@@ -1,0 +1,97 @@
+{
+  "n": 100,
+  "window": {
+    "benign": {
+      "n": 5437,
+      "rate_limit_or_more": 0.17196983630678683,
+      "quarantine_theta50": 0.01949604561338974,
+      "quarantine_theta60": 0.0003678499172337686,
+      "quarantine_theta70": 0.0,
+      "quarantine_theta80": 0.0,
+      "quarantine_theta70_without_anomaly": 0.0
+    },
+    "scan": {
+      "n": 1130,
+      "rate_limit_or_more": 0.7371681415929203,
+      "quarantine_theta50": 0.5274336283185841,
+      "quarantine_theta60": 0.5194690265486726,
+      "quarantine_theta70": 0.515929203539823,
+      "quarantine_theta80": 0.43716814159292033,
+      "quarantine_theta70_without_anomaly": 0.0
+    },
+    "bruteforce": {
+      "n": 3368,
+      "rate_limit_or_more": 1.0,
+      "quarantine_theta50": 1.0,
+      "quarantine_theta60": 0.997624703087886,
+      "quarantine_theta70": 0.9839667458432304,
+      "quarantine_theta80": 0.96229216152019,
+      "quarantine_theta70_without_anomaly": 0.4432897862232779
+    },
+    "dos": {
+      "n": 959,
+      "rate_limit_or_more": 1.0,
+      "quarantine_theta50": 1.0,
+      "quarantine_theta60": 1.0,
+      "quarantine_theta70": 1.0,
+      "quarantine_theta80": 0.9968717413972888,
+      "quarantine_theta70_without_anomaly": 0.9572471324296142
+    },
+    "beacon": {
+      "n": 2699,
+      "rate_limit_or_more": 0.11004075583549462,
+      "quarantine_theta50": 0.0029640607632456465,
+      "quarantine_theta60": 0.0,
+      "quarantine_theta70": 0.0,
+      "quarantine_theta80": 0.0,
+      "quarantine_theta70_without_anomaly": 0.0
+    }
+  },
+  "run": {
+    "benign": {
+      "n_run_tests": 300,
+      "any_action": 0.36333333333333334,
+      "any_quarantine_theta50": 0.09,
+      "any_quarantine_theta60": 0.006666666666666667,
+      "any_quarantine_theta70": 0.0,
+      "any_quarantine_theta80": 0.0,
+      "any_quarantine_theta70_without_anomaly": 0.0
+    },
+    "scan": {
+      "n_run_tests": 200,
+      "any_action": 1.0,
+      "any_quarantine_theta50": 1.0,
+      "any_quarantine_theta60": 1.0,
+      "any_quarantine_theta70": 1.0,
+      "any_quarantine_theta80": 1.0,
+      "any_quarantine_theta70_without_anomaly": 0.0
+    },
+    "bruteforce": {
+      "n_run_tests": 100,
+      "any_action": 1.0,
+      "any_quarantine_theta50": 1.0,
+      "any_quarantine_theta60": 1.0,
+      "any_quarantine_theta70": 1.0,
+      "any_quarantine_theta80": 1.0,
+      "any_quarantine_theta70_without_anomaly": 1.0
+    },
+    "dos": {
+      "n_run_tests": 200,
+      "any_action": 1.0,
+      "any_quarantine_theta50": 1.0,
+      "any_quarantine_theta60": 1.0,
+      "any_quarantine_theta70": 1.0,
+      "any_quarantine_theta80": 1.0,
+      "any_quarantine_theta70_without_anomaly": 1.0
+    },
+    "beacon": {
+      "n_run_tests": 100,
+      "any_action": 0.54,
+      "any_quarantine_theta50": 0.02,
+      "any_quarantine_theta60": 0.0,
+      "any_quarantine_theta70": 0.0,
+      "any_quarantine_theta80": 0.0,
+      "any_quarantine_theta70_without_anomaly": 0.0
+    }
+  }
+}

@@ -6,6 +6,17 @@ All changes relative to the original `iot_digital_twin/` repository.
 
 Plan: `DELIVERABLE_3_PHASE3-5_PLAN.md` (approved). Steps 1–3 below need no live twin.
 
+### Phase 2d — reviewer-driven re-analysis (2026-11-25) — `experiments/run_phase2d.py`, `reports/phase2d/`
+- Min-max bounds now refitted on the training runs of every split (review E8); raw values recovered exactly from
+  `data/scaler_v3.json`. Deployed recipe: F1 0.759 → 0.754, FPR 0.112 → 0.128 (small change).
+- Added trivial baselines and MCC / balanced accuracy / PR-AUC / recall at equal FPR (E2, E3, E7). Flagging every
+  window gives F1 0.748 (MCC 0); deployed recipe MCC 0.544. Every other supervised detector has higher MCC and higher
+  recall at equal FPR; scan augmentation lowers recall without improving ranking; network-only raises MCC to 0.624.
+- Nested selection by inner MCC (E4/E5) does not reliably beat the deployed recipe (MCC 0.559 vs 0.547, p = 0.34).
+- Policy actions per class (F5): scan quarantine depends entirely on the anomaly term; 17.2% of benign windows reach
+  the rate-limit band, 9% of benign runs exceed 50 (strict-mode restore), none exceed 70.
+- Tests: `tests/test_phase2d.py` (scaling round trip, training-only bounds, MCC, trivial baseline).
+
 ### Phase 3 live results (2026-11-21) — `reports/phase3/RESULTS.md`, raw logs in `reports/phase3/raw/`
 - T1: 3/3 clean restores verified (81–118 s to ping; web UI +42–78 s later); baseline hash matched.
 - T2: isolate 0.038–0.047 s, attacker 200/200 dropped, host exception works. T3: meter cut delivered SYNs ≈47%.
