@@ -1,7 +1,7 @@
 #!/bin/bash
 # experiments/member2/imp11_check.sh — IMP-11: does the healing engine keep its state across a stop?
 #
-#   sudo bash experiments/member2/imp11_check.sh        (~4 min, twin + Ryu up, no attack is sent)
+#   sudo bash experiments/member2/imp11_check.sh        (~2 min, twin + Ryu up, no attack is sent)
 #
 # The engine (persond/run_pipeline.py, containment ryu) is fed a synthetic high-risk alert, so it
 # isolates the twin and starts a restore (a fake 45 s 'sleep', the twin itself is not touched).
@@ -33,8 +33,19 @@ print(json.dumps({"alert_version": "1.0.0", "emitted_at_epoch": t, "type": "wind
 EOF
 }
 start_engine() {
-  python3 -u persond/run_pipeline.py --follow "$FEED" --db "$DB" --containment ryu \
-    --restore-cmd "sleep 45" >>"$LOG" 2>&1 & PID=$!; sleep 3
+  # Background jobs of a script start with Ctrl-C (SIGINT) ignored, and Python keeps an ignored SIGINT,
+  # so restore Python's normal Ctrl-C handling before running the pipeline.
+  python3 -u -c 'import runpy, signal, sys
+signal.signal(signal.SIGINT, signal.default_int_handler)
+sys.argv = ["persond/run_pipeline.py"] + sys.argv[1:]
+runpy.run_path("persond/run_pipeline.py", run_name="__main__")' \
+    --follow "$FEED" --db "$DB" --containment ryu --restore-cmd "sleep 45" >>"$LOG" 2>&1 & PID=$!; sleep 3
+}
+stop_engine() {   # stop_engine INT|KILL : send the signal, wait at most 15 s, then make sure it is gone
+  kill -"$1" "$PID" 2>/dev/null
+  for _ in $(seq 1 15); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
+  kill -0 "$PID" 2>/dev/null && { log "  engine ignored SIG$1 for 15 s - killing it"; kill -9 "$PID"; }
+  wait "$PID" 2>/dev/null; PID=""
 }
 cleanup() {
   [ -n "$PID" ] && kill -9 "$PID" 2>/dev/null
@@ -50,14 +61,14 @@ log "IMP-11 check, git $(git rev-parse --short HEAD); before: rules=$(rules) atk
 # ---- A: graceful stop (Ctrl-C) during the restore
 start_engine; alert 90; sleep 6
 A0="rules=$(rules) atk=$(atk)"; log "A  engine isolated the twin and is restoring: $A0"
-kill -INT "$PID"; wait "$PID" 2>/dev/null; PID=""; sleep 2
+stop_engine INT; sleep 2
 A1="rules=$(rules) atk=$(atk)"; log "A  after Ctrl-C mid-restore: $A1"
 python3 persond/containment.py --mode ryu release $DEV >>"$LOG" 2>&1; sleep 2
 
 # ---- B: crash (SIGKILL) during the restore, then restart
 start_engine; alert 90; sleep 6
 B0="rules=$(rules) atk=$(atk)"; log "B  engine isolated the twin and is restoring: $B0"
-kill -9 "$PID"; wait "$PID" 2>/dev/null; PID=""; sleep 2
+stop_engine KILL; sleep 2
 B1="rules=$(rules) atk=$(atk)"; log "B  after crash mid-restore: $B1"
 start_engine
 for i in 1 2 3; do alert 5; sleep 4; done           # calm windows: a stateful engine would release + verify
@@ -65,7 +76,7 @@ sleep 50                                             # past the fake restore tim
 B2="rules=$(rules) atk=$(atk)"; log "B  restarted engine, 3 low-risk alerts, 60 s later: $B2"
 HEALS=$(python3 -c "import sqlite3;print(sqlite3.connect('$DB').execute('select count(*), coalesce(group_concat(verify_status),\"\") from heals').fetchone())")
 log "B  heals in database: $HEALS"
-kill -INT "$PID"; wait "$PID" 2>/dev/null; PID=""
+stop_engine INT
 B3="rules=$(rules) atk=$(atk)"; log "B  after stopping the restarted engine with Ctrl-C: $B3"
 
 { echo; echo "===== RESULT IMP-11 ($TS, git $(git rev-parse --short HEAD)) ====="
