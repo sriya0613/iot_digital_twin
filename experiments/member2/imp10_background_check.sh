@@ -34,18 +34,26 @@ decided() { python3 -c "import sqlite3,sys; r=sqlite3.connect(sys.argv[1]).execu
 heals() { python3 -c "import sqlite3,sys; print(sqlite3.connect(sys.argv[1]).execute(\"select count(*) || ' ok=' || coalesce(sum(ok),0) from heals\").fetchone()[0])" "$1" 2>/dev/null; }
 run() {   # run <name> [engine flags] -> sets RES_<name>
   local name=$1; shift; local feed="$WORK/$name.jsonl" db="$WORK/$name.db"; : >"$feed"
-  python3 -u persond/run_pipeline.py --follow "$feed" --db "$db" --containment ryu \
-    --restore-cmd "bash network/twin_net.sh heal" "$@" >>"$LOG" 2>&1 & PID=$!; sleep 3
+  python3 -u -c 'import runpy, signal, sys
+signal.signal(signal.SIGINT, signal.default_int_handler)
+sys.argv = ["persond/run_pipeline.py"] + sys.argv[1:]
+runpy.run_path("persond/run_pipeline.py", run_name="__main__")' \
+    --follow "$feed" --db "$db" --containment ryu --restore-cmd "bash network/twin_net.sh heal" "$@" >>"$LOG" 2>&1 & PID=$!; sleep 3
   alert "$feed" $DEV 90 "$name-twin"; sleep 10
   local t0; t0=$(date +%s.%N); alert "$feed" 192.168.0.20 10 "$name-other"
   for _ in $(seq 1 400); do [ "$(decided "$db" "$name-other")" = 1 ] && break; sleep 0.5; done
   local lat; lat=$(awk -v a="$t0" -v b="$(date +%s.%N)" 'BEGIN{printf "%.1f", b-a}')
   log "$name: decision for the other device after $lat s"
-  for _ in $(seq 1 60); do alert "$feed" $DEV 5 "$name-calm-$_"; sleep 5          # keep records coming so a
-    [ "$(rules)" = 0 ] && ping -c1 -W1 $DEV >/dev/null 2>&1 && break; done           # background result is applied
-  log "$name: twin released and answering: rules=$(rules), heals $(heals "$db")"
-  kill -INT "$PID" 2>/dev/null; sleep 3; kill -9 "$PID" 2>/dev/null; PID=""
-  eval "RES_$name=\"other-device decision after $lat s; heals $(heals "$db"); rules after=$(rules)\""
+  local early=no
+  for i in $(seq 1 80); do alert "$feed" $DEV 5 "$name-calm-$i"; sleep 5   # keep records coming so a background
+    local h; h=$(heals "$db" | cut -d' ' -f1)                                 # result is applied; done = heal recorded
+    [ "${h:-0}" = 0 ] && [ "$(rules)" = 0 ] && early=yes                     # quarantine gone before the restore ended
+    [ "${h:-0}" -ge 1 ] && [ "$(rules)" = 0 ] && ping -c1 -W1 $DEV >/dev/null 2>&1 && break
+  done
+  log "$name: restore recorded, twin released and answering: rules=$(rules), heals $(heals "$db"), released before the restore ended: $early"
+  kill -INT "$PID" 2>/dev/null; for _ in $(seq 1 15); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
+  kill -9 "$PID" 2>/dev/null; PID=""
+  eval "RES_$name=\"other-device decision after $lat s; heals $(heals "$db"); released before the restore ended: $early\""
 }
 cleanup() {
   [ -n "$PID" ] && kill -9 "$PID" 2>/dev/null
@@ -64,4 +72,5 @@ run bg --background-restore
 { echo; echo "===== RESULT IMP-10 ($TS, git $(git rev-parse --short HEAD)) ====="
   echo "foreground restore: ${RES_fg:-not run}   (expect: decision only after the restore, ~2 min)"
   echo "background restore: ${RES_bg:-not run}   (expect: decision within a few seconds)"
+  echo "both: expect heals 1 ok=1 and 'released before the restore ended: no'"
 } | tee -a "$LOG"

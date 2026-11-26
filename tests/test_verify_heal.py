@@ -407,3 +407,16 @@ def test_background_restore_failure_is_held(tmp_path):
     assert eng.handle(win(1000, 95)) == "restoring"
     assert eng.collect(wait=True) == ["restore_failed"]
     assert "restore failed" in db.held_reason("192.168.0.1") and "release" not in net.calls
+
+
+def test_background_restore_not_released_by_alerts_during_restore(tmp_path):
+    """Calm alerts for the restoring device must not lift its quarantine before the restore finishes."""
+    script = tmp_path / "slow_restore.sh"
+    script.write_text("#!/bin/sh\nsleep 1.5\nexit 0\n")
+    net = RecNet()
+    eng, db = engine(tmp_path, "bgcalm", net)
+    eng.background, eng.restore_cmd = True, ["sh", str(script)]
+    assert eng.handle(win(1000, 95)) == "restoring"
+    assert eng.handle(win(1005, 5)) == "ignored" and eng.handle(win(1010, 5)) == "ignored"
+    assert "release" not in net.calls                           # still quarantined while restoring
+    assert eng.collect(wait=True) == ["restored"] and net.calls[-1] == "release"

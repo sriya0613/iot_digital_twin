@@ -256,7 +256,9 @@ class HealingEngine:
             if a["risk_score"] > QUARANTINE_ABOVE:
                 print("[risk %3d] %s is held for a human (%s) - not resetting" % (a["risk_score"], dev, held))
             return "held"
-        if dev in self.isolated or dev in self.pending_isolate:   # a human cleared it since: lift the isolation
+        # isolated but no longer held -> a human cleared it: lift the isolation. Not while its restore runs in
+        # the background: then it is isolated on purpose (IMP-10 live check, 2026-11-26: it was released mid-restore)
+        if (dev in self.isolated or dev in self.pending_isolate) and dev not in self.jobs:
             print("[clear] %s was cleared by a human" % dev)
             self._release(dev, now)
 
