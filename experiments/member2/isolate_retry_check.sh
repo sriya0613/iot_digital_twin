@@ -78,6 +78,6 @@ log "engine stopped: $S3"
 
 { echo; echo "===== RESULT isolate retry ($TS, git $(git rev-parse --short HEAD)) ====="
   echo "with Ryu down:            $S1 (expect rules=0, atk reaches; notifications >= 1: $NOTE)"
-  echo "after Ryu is back:        $S2 (expect rules=16 atk=blocked), quarantine installed ${T_OK:-never} s after Ryu returned"
-  echo "after the engine stopped: $S3 (expect rules=16 atk=blocked)"
+  echo "after Ryu is back:        $S2 (expect rules=12 atk=blocked), quarantine installed ${T_OK:-never} s after Ryu returned"
+  echo "after the engine stopped: $S3 (expect rules=12 atk=blocked)"
 } | tee -a "$LOG"

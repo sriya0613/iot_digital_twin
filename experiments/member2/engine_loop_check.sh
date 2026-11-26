@@ -80,5 +80,5 @@ run_part F --accept-http 999 --service-timeout 30
   echo "P (all checks can pass):  ${R_P:-not run}"
   echo "F (check forced to fail): ${R_F:-not run}"
   echo "expect P: restored, checks all =1, held no, after exit rules=0, attacker 0 while isolated"
-  echo "expect F: restored_checks_failed, service=0, held yes, after exit rules=16 atk=0, attacker 0 while isolated"
+  echo "expect F: restored_checks_failed, service=0, held yes, after exit rules=12 atk=0, attacker 0 while isolated"
 } | tee -a "$LOG"

@@ -41,6 +41,13 @@ recover() {   # release, unfreeze/stop QEMU, normal heal; returns 0 when the twi
   [ -n "$FREEZER" ] && { kill "$FREEZER" 2>/dev/null; FREEZER=""; }
   pkill -CONT -f qemu-system- 2>/dev/null
   python3 persond/containment.py --mode ryu release $DEV >>"$LOG" 2>&1
+  # A fault that cuts a heal short leaves restore.sh and FirmAE's run.sh running in the background with the
+  # disk image mounted; the next boot then fails once ("umount ... target is busy"). Stop them first.
+  tmux kill-session -t twin 2>/dev/null; sleep 1
+  pkill -f "$FIRMAE_DIR/restore.sh" 2>/dev/null; pkill -f "restore_corrupt.sh" 2>/dev/null
+  pkill -f "run.sh -r" 2>/dev/null; pkill -f "scratch/${IID:-1}/run.sh" 2>/dev/null
+  pkill -f qemu-system- 2>/dev/null; sleep 3
+  umount -l "$SCR/image" 2>/dev/null
   bash network/twin_net.sh clean >>"$LOG" 2>&1
   bash network/twin_net.sh heal >>"$LOG" 2>&1
   ping -c 2 -W 2 $DEV >/dev/null 2>&1
