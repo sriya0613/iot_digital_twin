@@ -27,7 +27,12 @@ log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 die() { log "ERROR: $*"; exit 1; }
 ryu_up() { [ "$(ovs-vsctl get controller $BR is_connected 2>/dev/null)" = true ]; }
 start_ryu() { ryu_up || bash network/twin_net.sh up >>"$LOG" 2>&1; for _ in $(seq 1 30); do ryu_up && return 0; sleep 1; done; return 1; }
-kill_ryu() { tmux kill-session -t ryu 2>/dev/null; pkill -f ryu-manager 2>/dev/null; sleep 1; }
+# Stop Ryu only. Never 'pkill -f ryu-manager': the tmux server keeps the command line of the first
+# session it started (often the ryu one), so that pattern also kills the tmux server and with it the
+# twin's emulator. Match the python process running ryu-manager instead.
+kill_ryu() { tmux kill-session -t ryu 2>/dev/null; sleep 1
+             pkill -f 'python[0-9.]* [^ ]*ryu-manager' 2>/dev/null; sleep 1
+             pgrep -fc qemu-system >/dev/null || log "WARNING: emulator not running after stopping Ryu"; }
 our_flows() { ovs-ofctl -O OpenFlow13 dump-flows $BR 2>/dev/null | grep -c 'cookie=0xd000000[12]'; }
 failopen_flows() { ovs-appctl bridge/dump-flows $BR 2>/dev/null | grep -c 'priority=15790320'; }   # OVS hidden fail-open flow
 ping_ok() { ip netns exec "$1" ping -c 1 -W 1 "$DEV_IP" >/dev/null 2>&1 && echo 1 || echo 0; }
@@ -128,7 +133,7 @@ e13() {
 # ======================================================================================== E11
 e11() {
   local exp=E11; LOG="$OUT/${exp}_$TS.log"; CSV="$OUT/${exp}_$TS.csv"; : >"$LOG"
-  echo "case,trial,t_s,ryu_up,our_rules,failopen_rules,atk_reaches,host_reaches" >"$CSV"
+  echo "case,trial,t_s,ryu_up,our_rules,failopen_rules,atk_reaches,host_reaches,qemu_up" >"$CSV"
   log "E11 controller failure. A: Ryu killed during quarantine, watched 60 s, restarted. B: isolate while Ryu is down."
   preflight
   for t in 1 2 3 4 5; do
@@ -138,28 +143,28 @@ e11() {
     kill_ryu; local t0; t0=$(date +%s)
     while [ $(( $(date +%s) - t0 )) -lt 60 ]; do
       local el=$(( $(date +%s) - t0 ))
-      echo "A,$t,$el,0,$(our_flows),$(failopen_flows),$(ping_ok atk),$(host_ping_ok)" >>"$CSV"
+      echo "A,$t,$el,0,$(our_flows),$(failopen_flows),$(ping_ok atk),$(host_ping_ok),$(pgrep -fc qemu-system)" >>"$CSV"
     done
     local leak; leak=$(awk -F, -v t=$t '$1=="A"&&$2==t&&$7==1{print $3; exit}' "$CSV")
     log "  Ryu down 60 s: first attacker packet through at t=${leak:-never} s; rules at end=$(our_flows); fail-open rules=$(failopen_flows)"
     start_ryu || die "Ryu did not restart"
     sleep 3
-    echo "A,$t,after_restart,1,$(our_flows),$(failopen_flows),$(ping_ok atk),$(host_ping_ok)" >>"$CSV"
+    echo "A,$t,after_restart,1,$(our_flows),$(failopen_flows),$(ping_ok atk),$(host_ping_ok),$(pgrep -fc qemu-system)" >>"$CSV"
     log "  after Ryu restart: rules=$(our_flows) fail-open=$(failopen_flows) atk=$(ping_ok atk) host=$(host_ping_ok)"
     $PY release $DEV_IP >>"$LOG" 2>&1; sleep 10
   done
   for t in 1 2 3 4 5; do
     kill_ryu
     local res; res=$($PY isolate $DEV_IP 2>&1 | tail -1); echo "$res" >>"$LOG"
-    echo "B,$t,0,0,$(our_flows),$(failopen_flows),$(ping_ok atk),$(host_ping_ok)" >>"$CSV"
+    echo "B,$t,0,0,$(our_flows),$(failopen_flows),$(ping_ok atk),$(host_ping_ok),$(pgrep -fc qemu-system)" >>"$CSV"
     log "B trial $t: isolate with Ryu down -> $(echo "$res" | grep -o "'ok': [A-Za-z]*") rules=$(our_flows) atk=$(ping_ok atk)"
     start_ryu || die "Ryu did not restart"; $PY release $DEV_IP >>"$LOG" 2>&1; sleep 5
   done
   { echo; echo "===== RESULT E11 ($TS, git $(git rev-parse --short HEAD)) ====="
-    awk -F, '$1=="A"&&$3!="after_restart"{n[$2]++; a[$2]+=$7; if($7==1&&!($2 in f)) f[$2]=$3; r[$2]=$5; o[$2]=$6}
+    awk -F, '$1=="A"&&$3!="after_restart"{n[$2]++; a[$2]+=$7; h[$2]+=$8; q[$2]+=($9>0); if($7==1&&!($2 in f)) f[$2]=$3; r[$2]=$5; o[$2]=$6}
              $1=="A"&&$3=="after_restart"{ar[$2]=$5" rules, atk="$7}
-             END{for(t=1;t<=5;t++) printf "A trial %d: attacker reached twin in %d/%d one-second probes while Ryu down; first leak t=%s s; rules at 60 s=%s; fail-open rules=%s; after restart: %s\n", t, a[t], n[t], (t in f)?f[t]:"never", r[t], o[t], ar[t]}' "$CSV"
-    awk -F, '$1=="B"{printf "B trial %d: isolate with Ryu down -> rules installed=%s, attacker reaches twin=%s\n", $2, $5, $7}' "$CSV"
+             END{for(t=1;t<=5;t++) printf "A trial %d: Ryu down 60 s -> attacker reached twin %d/%d probes (first at t=%s s), host %d/%d, emulator alive %d/%d; rules at 60 s=%s; fail-open=%s; after restart: %s\n", t, a[t], n[t], (t in f)?f[t]:"never", h[t], n[t], q[t], n[t], r[t], o[t], ar[t]}' "$CSV"
+    awk -F, '$1=="B"{printf "B trial %d: isolate with Ryu down -> rules installed=%s, attacker reaches twin=%s, host=%s, emulator=%s\n", $2, $5, $7, $8, $9}' "$CSV"
   } | tee -a "$LOG"
 }
 
