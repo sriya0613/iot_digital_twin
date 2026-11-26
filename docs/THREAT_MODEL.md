@@ -45,7 +45,7 @@ Trust boundary: the bridge. Everything attached to `br-twin` except `twin-host` 
 | P4 | The attacker cannot change the response through the control plane | Ryu REST and dashboard bound to 127.0.0.1 | Live 2026-11-26: atk → 8080 and 8501 refused; E13 C6 0/10 | Holds |
 | P5 | A heal returns the device to the clean baseline | Restore from baseline + independent verifier | Phase 3 T1 (3/3) | Partial — verifier hashes the baseline, not the live disk (IMP-05); release before verify (IMP-06) |
 | P6 | A failed heal leaves the device contained | Verify before release | — | Not yet (IMP-06/08, Member 2) |
-| P7 | Containment survives controller loss | `fail_mode=secure`: OVS keeps installed flows while Ryu is down | E11 with `standalone` (2026-11-26): rules deleted and attacker through after 11–13 s in 5/5 trials, not restored on reconnect; isolate during outage fails (ok=False) | **Failed with standalone**; `secure` fix to be re-measured |
+| P7 | Containment survives controller loss | `fail_mode=secure`: OVS keeps installed flows while Ryu is down | E11 2026-11-26. `standalone`: rules deleted, attacker through after 11–13 s, not restored on reconnect (5/5). `secure`: attacker 0/254 probes over 5 × 60 s outages, host 254/254, all 16 rules kept through outage and reconnect (5/5) | Holds with `secure`. Isolate *during* an outage still fails (ok=False, 5/5): engine must retry (Member 2) |
 
 ## Not claimed (out of scope)
 
@@ -60,4 +60,4 @@ Trust boundary: the bridge. Everything attached to `br-twin` except `twin-host` 
 
 ## Open items that change this document
 
-IMP-05, IMP-06, IMP-08 (Member 2) for P5–P6; E11 re-run with `fail_mode=secure` for P7. A failed isolate (Ryu down) must keep the device marked uncontained and retry (Member 2, healing engine).
+IMP-05, IMP-06, IMP-08 (Member 2) for P5–P6; A failed isolate (Ryu down) must keep the device marked uncontained and retry (Member 2, healing engine).
