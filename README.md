@@ -104,7 +104,7 @@ python3 persond/run_pipeline.py \
 
 **Tab 4 — Dashboard:**
 ```bash
-streamlit run persond/dashboard.py
+streamlit run persond/dashboard.py      # binds 127.0.0.1 via .streamlit/config.toml
 ```
 
 **Tab 5 — Launch an attack (from atk namespace):**

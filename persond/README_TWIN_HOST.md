@@ -61,7 +61,7 @@ python3 persond/run_pipeline.py --follow logs/alerts.jsonl \
     --containment ryu --dpid <dpid>
 
 # terminal 4 - dashboard, open http://localhost:8501
-streamlit run persond/dashboard.py
+streamlit run persond/dashboard.py      # binds 127.0.0.1 via .streamlit/config.toml
 ```
 
 Then attack and watch: `sudo ip netns exec atk nmap -T4 -p 1-1000 192.168.0.1`

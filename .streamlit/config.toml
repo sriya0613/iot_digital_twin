@@ -1,0 +1,8 @@
+# Dashboard is for the operator on the twin host only (IMP-03).
+# It has a "Clear" button that releases held devices, so it must not be reachable
+# from the twin's network (attacker namespace). Open it in the host's browser,
+# or from another machine with:  ssh -L 8501:127.0.0.1:8501 vboxuser@<vm>
+[server]
+address = "127.0.0.1"
+port = 8501
+headless = true
