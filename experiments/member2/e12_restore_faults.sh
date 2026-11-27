@@ -80,10 +80,13 @@ for fault in $FAULTS; do
       corrupt) RCMD="env HEAL_TRIES=1 HEAL_TIMEOUT=200 REAL_RESTORE=$WORK/restore_corrupt.sh bash network/twin_net.sh heal" ;;
       slow)    RCMD="env HEAL_TRIES=1 HEAL_TIMEOUT=20 bash network/twin_net.sh heal" ;;
       hung)    RCMD="env HEAL_TRIES=1 HEAL_TIMEOUT=200 bash network/twin_net.sh heal"
-               ( OLD=$(pgrep -f qemu-system- | tr '\n' ' ')            # freeze the NEW emulator once it starts
+               # Freeze the NEW emulator once it starts. Match the process NAME (pgrep -x), not the command line:
+               # 'pgrep -f qemu-system-' also matched twin_net.sh's own short-lived 'pkill/pgrep -f qemu-system-'
+               # commands, froze one of those instead, and the twin booted normally (E12 hung trial 5, 2026-11-27).
+               ( OLD=$(pgrep -x qemu-system-arm | tr '\n' ' ')
                  for _ in $(seq 1 400); do
-                   for p in $(pgrep -f qemu-system-); do
-                     echo " $OLD " | grep -q " $p " || { kill -STOP "$p"; echo "froze qemu $p" >>"$LOG"; exit 0; }
+                   for p in $(pgrep -x qemu-system-arm); do
+                     echo " $OLD " | grep -q " $p " || { kill -STOP "$p"; echo "froze qemu $p ($(ps -o comm= -p $p))" >>"$LOG"; exit 0; }
                    done; sleep 0.5
                  done ) & FREEZER=$! ;;
     esac
