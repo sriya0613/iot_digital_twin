@@ -43,8 +43,8 @@ Trust boundary: the bridge. Everything attached to `br-twin` except `twin-host` 
 | P2 | An attacker cannot pose as the host or the device to pass the quarantine | Anti-spoof drops: host MAC only from `twin-host`, device MAC only from the tap (prio 400) | Unit tests; live E13 2026-11-26: spoofed host IP, host MAC+IP, device MAC, ARP each 0/25 delivered (controls 50/25, 5/25) | Holds |
 | P3 | Installed rules are the intended rules | Read-back compares priority, match, actions per rule | Unit tests (wrong/missing rule → not verified); live verified=True | Holds |
 | P4 | The attacker cannot change the response through the control plane | Ryu REST and dashboard bound to 127.0.0.1 | Live 2026-11-26: atk → 8080 and 8501 refused; E13 C6 0/10 | Holds |
-| P5 | A heal returns the device to the clean baseline | Restore from baseline + independent verifier | Phase 3 T1 (3/3) | Partial — verifier hashes the baseline, not the live disk (IMP-05); release before verify (IMP-06) |
-| P6 | A failed heal leaves the device contained | Verify before release | — | Not yet (IMP-06/08, Member 2) |
+| P5 | A heal returns the device to the clean baseline | Restore from baseline + independent verifier | E6 2026-11-27: file, modified /etc/profile and startup script planted on the disk persist across a plain reboot (control 1 1 1 1) and are gone after 10/10 heals; IMP-05 v2: image.raw replaced (new inode) by the restore | Holds for on-disk persistence (no in-memory or outbound-beacon payload tested) |
+| P6 | A failed heal leaves the device contained | Verify before release (IMP-06); failed restore -> hold | Engine loop F (failed check -> held, 12 rules, attacker 0/20); E12 corrupt/slow/hung 5/5 each held and contained | Holds |
 | P7 | Containment survives controller loss | `fail_mode=secure`: OVS keeps installed flows while Ryu is down | E11 2026-11-26. `standalone`: rules deleted, attacker through after 11–13 s, not restored on reconnect (5/5). `secure`: attacker 0/254 probes over 5 × 60 s outages, host 254/254, all 16 rules kept through outage and reconnect (5/5) | Holds with `secure`. Isolate *during* an outage still fails (ok=False, 5/5): engine must retry (Member 2) |
 
 ## Not claimed (out of scope)
@@ -60,4 +60,4 @@ Trust boundary: the bridge. Everything attached to `br-twin` except `twin-host` 
 
 ## Open items that change this document
 
-IMP-05, IMP-06, IMP-08 (Member 2) for P5–P6; A failed isolate (Ryu down) must keep the device marked uncontained and retry (Member 2, healing engine).
+A failed isolate (Ryu down) must keep the device marked uncontained and retry (Member 2, healing engine).
